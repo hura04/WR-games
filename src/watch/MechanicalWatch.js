@@ -357,9 +357,10 @@ export function buildMechanicalWatch(def) {
 
   // ---- パッキン ----
   const gasketR = def.casebackDiameter / 2 - 0.3;
-  const seat = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.55, 8, 96), plain('#55585e', 0.8));
+  // パッキン溝はパッキンより少し奥（ケース側）に。パッキンがあるときは隠れる
+  const seat = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.4, 8, 96), plain('#55585e', 0.8));
   seat.rotation.x = Math.PI / 2;
-  seat.position.y = ext.yBack + 0.05;
+  seat.position.y = ext.yBack + 0.2;
   add('gasket_seat', seat);
   const makeGasket = (id, color, rough) => {
     const g = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.5, 10, 96), plain(color, rough));
