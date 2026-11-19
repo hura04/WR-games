@@ -29,6 +29,14 @@ export function addRingHitArea(mesh, radius, tube, flat = 0.45) {
   return hit;
 }
 
+/** 小さな丸い部品（押し込み部分など）用の見えない当たり判定。平たい円盤 */
+export function addDiscHitArea(obj, radius, height) {
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 16), HIT_MAT);
+  hit.userData.hitArea = true;
+  obj.add(hit);
+  return hit;
+}
+
 /** 部品idをつける（中のメッシュのうち、まだidのないもの全部に） */
 export function tag(obj, partId) {
   obj.traverse((o) => {

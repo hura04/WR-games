@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { discGeometry, gearGeometry, ringGeometry, bridgeGeometry, planarUV, spiralGeometry, screwHead } from './geometry.js';
 import { genevaStripesTexture, perlageTexture, rotorTexture } from './textures.js';
-import { buildExterior, tag, metal, plain, addRingHitArea } from './caseParts.js';
+import { buildExterior, tag, metal, plain, addRingHitArea, addDiscHitArea } from './caseParts.js';
 import { getMovement } from '../data/movements.js';
 
 /** テクスチャを部品ごとに複製して、mm 単位の UV に合わせる */
@@ -274,10 +274,12 @@ export function buildMechanicalWatch(def) {
 
   // ---- オシドリ（巻真を抜くときに押す） ----
   const settingLever = new THREE.Group();
-  const leverPin = new THREE.Mesh(discGeometry(0.45, 0.3, 12), metal('#c4c9cf', 0.2));
-  const dimple = new THREE.Mesh(discGeometry(0.2, 0.05, 10), plain('#222'));
+  const leverPin = new THREE.Mesh(discGeometry(0.7, 0.3, 16), metal('#c4c9cf', 0.2));
+  const dimple = new THREE.Mesh(discGeometry(0.3, 0.05, 12), plain('#222'));
   dimple.position.y = 0.3;
   settingLever.add(leverPin, dimple);
+  // 小さいので、押せる範囲を少し広げる（見た目は変えない）
+  addDiscHitArea(settingLever, 1.8, 0.5).position.y = 0.15;
   settingLever.rotation.x = Math.PI;
   settingLever.position.set(mv.settingLever.pos[0], Y(0.3), mv.settingLever.pos[1]);
   addMv('setting_lever', settingLever);

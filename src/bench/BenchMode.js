@@ -443,7 +443,8 @@ export class BenchMode {
       }
     }
     this.busy = true;
-    if (this.guide) this.#showExplain(step);
+    // 画面が広いときだけ解説を自動で開く（狭い画面では時計が隠れるので［解説］ボタンで開く）
+    if (this.guide && innerWidth >= 1000) this.#showExplain(step);
     const scores = [];
     const tremor = getTool(this.toolId)?.tremor ?? 1;
     try {
