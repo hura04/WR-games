@@ -299,7 +299,7 @@ export class BenchMode {
     on('bc-explain', () => this.#toggleExplainForNext());
     on('bc-guide', () => this.toggleGuide());
     on('bc-stand', () => this.game.leaveBench());
-    on('steps-toggle', () => $('steps').classList.toggle('collapsed'));
+    on('steps-toggle', () => { $('steps').classList.toggle('collapsed'); this.#resize(); });
   }
 
   #rotateBy(dx, dy) {
@@ -353,6 +353,18 @@ export class BenchMode {
   #resize() {
     const w = innerWidth, h = innerHeight;
     this.camera.aspect = w / h;
+    // 左の手順パネル・右のボタン・下の道具バーに隠れないように、
+    // 画面の「空いている部分」の真ん中に時計が来るよう、描く範囲をずらす
+    const steps = $('steps'), ctrl = $('bench-controls'), tools = $('tool-area');
+    const box = (el) => (el && el.offsetWidth ? el.getBoundingClientRect() : null);
+    const sb = box(steps), cb = box(ctrl), tb = box(tools);
+    // 画面の端から端まで覆うほど大きいパネルは考えに入れない（ずらしすぎ防止）
+    const left = sb && sb.right < w * 0.45 ? sb.right : 0;
+    const right = cb && cb.left > w * 0.55 ? w - cb.left : 0;
+    const bottom = tb && tb.top > h * 0.5 ? h - tb.top : 0;
+    const dx = (left - right) / 2, dy = -bottom / 2;
+    if (dx || dy) this.camera.setViewOffset(w, h, -dx, -dy, w, h);
+    else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
     Object.assign(this.overlayCam, { right: w, top: h });
     this.overlayCam.updateProjectionMatrix();
