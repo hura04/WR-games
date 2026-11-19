@@ -4,27 +4,47 @@
 // ・どの工程が今できるか（needs が終わっているか）
 // ・クリックされた部品と持っている道具から、何が起きるかを判定
 // ・失敗や操作の出来を記録して、仕上がり点（0〜100）を計算
+//
+// 工程データで使える特別な項目
+//   when     : { service, is } 見積もりの内容 / { flag, is } 点検結果などのフラグ で工程を切り替え
+//   optional : true なら、やらなくても完了できる（例：文字盤保護シート）
+//   before   : optional な工程が「この工程より前」でないと意味がないときの工程id
+//   risks    : [{ unless, failure }] unless の工程をしていないと、完了時に失敗が起きる
+//   station  : 'cleaner' など、作業台以外の場所で行う工程（部品のクリックでは始まらない）
 // =============================================================
 import { FAILURES } from '../data/failures.js';
 
 export class ProcedureRunner {
   /**
    * @param {object} procedure 工程データ
-   * @param {object} context   { services: Set<string> } 見積もりで選んだ作業メニュー
+   * @param {object} context   { services: Set<string>, flags: object } 見積もりで選んだ作業メニュー、点検結果など
    */
   constructor(procedure, context = {}) {
     this.procedure = procedure;
     this.services = context.services || new Set();
-    this.steps = procedure.steps.filter((s) => this.#applies(s));
+    this.flags = context.flags || {};
     this.done = new Set();
+    this.skipped = new Set(); // やらずに過ぎた optional 工程
     this.failures = []; // { stepId, type }
     this.skillLoss = 0; // 操作の出来による減点の合計
     this.stepScores = {}; // stepId -> 0..1
   }
 
+  /** 今の見積もり内容・フラグで有効な工程の一覧 */
+  get steps() {
+    return this.procedure.steps.filter((s) => this.#applies(s));
+  }
+
+  get requiredSteps() {
+    return this.steps.filter((s) => !s.optional);
+  }
+
   #applies(step) {
-    if (!step.when) return true;
-    return this.services.has(step.when.service) === step.when.is;
+    const w = step.when;
+    if (!w) return true;
+    if (w.service) return this.services.has(w.service) === w.is;
+    if (w.flag) return !!this.flags[w.flag] === w.is;
+    return true;
   }
 
   #needSatisfied(need) {
@@ -33,7 +53,8 @@ export class ProcedureRunner {
 
   isAvailable(stepId) {
     const step = this.getStep(stepId);
-    if (!step || this.done.has(stepId)) return false;
+    if (!step || this.done.has(stepId) || this.skipped.has(stepId)) return false;
+    if (step.before && this.done.has(step.before)) return false;
     return step.needs.every((n) => this.#needSatisfied(n));
   }
 
@@ -48,7 +69,7 @@ export class ProcedureRunner {
   /** その部品を対象にしている工程（targetAlso も含む） */
   #stepsForTarget(targetId) {
     return this.steps.filter(
-      (s) => s.target === targetId || (s.targetAlso || []).includes(targetId),
+      (s) => !s.station && (s.target === targetId || (s.targetAlso || []).includes(targetId)),
     );
   }
 
@@ -57,35 +78,35 @@ export class ProcedureRunner {
    * @returns {{type:'start'|'wrongTool'|'notYet'|'hint'|'nothing', step?, failure?, message?, missing?}}
    */
   evaluate(targetId, toolId) {
-    const candidates = this.#stepsForTarget(targetId).filter((s) => !this.done.has(s.id));
+    const candidates = this.#stepsForTarget(targetId).filter((s) => !this.done.has(s.id) && !this.skipped.has(s.id));
     const available = candidates.filter((s) => this.isAvailable(s.id));
 
     const ready = available.find((s) => s.tool === toolId);
     if (ready) return { type: 'start', step: ready };
 
     if (available.length > 0) {
-      const step = available[0];
+      const step = available.find((s) => s.wrongTools?.[toolId]) || available[0];
       const wrong = step.wrongTools?.[toolId];
       if (typeof wrong === 'string') return { type: 'wrongTool', step, failure: wrong };
       if (wrong && wrong.message) return { type: 'wrongTool', step, message: wrong.message };
       return { type: 'wrongTool', step, message: 'この道具ではこの作業はできません。' };
     }
 
-    // 対象ではないが（今できる工程の）、近くの部品へのヒントがある場合
+    // 対象ではないが（今できる工程の）近くの部品へのヒントがある場合
     for (const s of this.availableSteps()) {
-      if (s.targetHint && s.targetHint[targetId] && s.tool === toolId) {
+      if (s.targetHint && s.targetHint[targetId] && (s.tool === toolId || s.hintAnyTool)) {
         return { type: 'hint', step: s, message: s.targetHint[targetId] };
       }
     }
 
-    if (candidates.length > 0) {
-      const step = candidates[0];
+    const pending = candidates.filter((s) => !(s.before && this.done.has(s.before)));
+    if (pending.length > 0) {
+      const step = pending.find((s) => s.tool === toolId) || pending[0];
       const missing = step.needs
         .filter((n) => !this.#needSatisfied(n))
         .map((n) => n.split('|').map((id) => this.getStep(id)?.name).filter(Boolean).join(' / '));
       return { type: 'notYet', step, missing };
     }
-
     return { type: 'nothing' };
   }
 
@@ -100,6 +121,7 @@ export class ProcedureRunner {
    * 工程を完了する
    * @param {string} stepId
    * @param {number} score 操作の出来 0..1（ミニゲームがない工程は 1）
+   * @returns {Array<object>} この完了で起きた失敗（risks / autoFailure）
    */
   complete(stepId, score = 1) {
     const step = this.getStep(stepId);
@@ -110,11 +132,18 @@ export class ProcedureRunner {
     const weight = step.weight ?? 10;
     this.skillLoss += (1 - s) * weight;
     this.done.add(stepId);
-    if (step.autoFailure) this.recordFailure(stepId, step.autoFailure);
+    const happened = [];
+    for (const r of step.risks || []) {
+      if (!this.done.has(r.unless)) happened.push(this.recordFailure(stepId, r.failure));
+    }
+    if (step.autoFailure) happened.push(this.recordFailure(stepId, step.autoFailure));
+    // この工程より前にやるべきだった optional 工程は「やらずに過ぎた」
+    for (const o of this.steps) if (o.optional && o.before === stepId && !this.done.has(o.id)) this.skipped.add(o.id);
+    return happened;
   }
 
   isFinished() {
-    return this.steps.every((s) => this.done.has(s.id));
+    return this.requiredSteps.every((s) => this.done.has(s.id));
   }
 
   /** 仕上がり点 0..100 */
@@ -129,8 +158,9 @@ export class ProcedureRunner {
     return this.failures.reduce((sum, f) => sum + FAILURES[f.type].cost, 0);
   }
 
-  /** 進捗 0..1 */
+  /** 進捗 0..1（必須の工程のうち終わった割合） */
   progress() {
-    return this.done.size / this.steps.length;
+    const req = this.requiredSteps;
+    return req.filter((s) => this.done.has(s.id)).length / req.length;
   }
 }

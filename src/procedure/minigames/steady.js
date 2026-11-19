@@ -1,12 +1,17 @@
 // 手ブレ：ピンセットの先を通路からはみ出さずにゴールまで運ぶ
+//   つかんだ位置から相対的に動くので、タッチでも指で先端が隠れない
 import { createPanel, bindCancel, tremorAt, clamp01 } from './common.js';
+
+const PATHS = {
+  long: [{ x: 50, y: 200 }, { x: 200, y: 20 }, { x: 320, y: 260 }, { x: 470, y: 70 }],
+  short: [{ x: 90, y: 190 }, { x: 200, y: 90 }, { x: 320, y: 200 }, { x: 430, y: 90 }],
+};
 
 export function run(container, cfg, ctx) {
   return new Promise((resolve) => {
     const p = createPanel(container, cfg, { width: 520, height: 260 });
     const W = p.canvas.width, H = p.canvas.height;
-    // 通路（ゆるいS字のベジェ曲線）を点列にする
-    const P0 = { x: 50, y: 200 }, P1 = { x: 200, y: 20 }, P2 = { x: 320, y: 260 }, P3 = { x: 470, y: 70 };
+    const [P0, P1, P2, P3] = PATHS[cfg.path || 'long'];
     const path = [];
     for (let i = 0; i <= 120; i++) {
       const t = i / 120, u = 1 - t;
@@ -17,14 +22,10 @@ export function run(container, cfg, ctx) {
     }
     const half = cfg.corridor / 2;
     const amp = (cfg.tremor ?? 5) * (ctx.tremor ?? 1);
-    let mouse = { ...P0 }, tip = { ...P0 }, carrying = false, done = false, t = 0;
+    let pointer = { ...P0 }, grab = { x: 0, y: 0 }, tip = { ...P0 }, carrying = false, done = false, t = 0;
     let devSum = 0, devN = 0, maxIdx = 0;
     const finish = (r) => { if (done) return; done = true; p.close(); resolve(r); };
     bindCancel(p, finish);
-    const toLocal = (e) => {
-      const r = p.canvas.getBoundingClientRect();
-      return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
-    };
     const nearest = (pt) => {
       let best = Infinity, idx = 0;
       path.forEach((q, i) => {
@@ -33,22 +34,29 @@ export function run(container, cfg, ctx) {
       });
       return { d: best, idx };
     };
-    p.on(p.canvas, 'mousedown', (e) => {
-      const m = toLocal(e);
-      if (Math.hypot(m.x - P0.x, m.y - P0.y) < 22) { carrying = true; mouse = m; }
+    p.on(p.canvas, 'pointerdown', (e) => {
+      const m = p.local(e);
+      const reach = e.pointerType === 'mouse' ? 24 : 70; // 指は太いので広めに
+      if (Math.hypot(m.x - P0.x, m.y - P0.y) < reach) {
+        carrying = true;
+        pointer = m;
+        grab = { x: P0.x - m.x, y: P0.y - m.y };
+        p.canvas.setPointerCapture?.(e.pointerId);
+      }
     });
-    p.on(p.canvas, 'mousemove', (e) => { mouse = toLocal(e); });
-    p.on(window, 'mouseup', () => {
+    p.on(p.canvas, 'pointermove', (e) => { pointer = p.local(e); });
+    const drop = () => {
       if (carrying && !done) finish({ score: 0.2, failure: cfg.failure || null, message: '途中で離してしまった' });
-    });
-    p.status.textContent = '左の○を押したまま、通路に沿って右の◎まで運ぶ';
+    };
+    p.on(window, 'pointerup', drop);
+    p.on(window, 'pointercancel', drop);
+    p.status.textContent = '左の○を押したまま（タッチも可）、通路に沿って右の◎まで運ぶ';
     p.loop((dt) => {
       if (done) return;
       t += dt;
       if (carrying) {
-        tip = { x: mouse.x + tremorAt(t, 0.4) * amp, y: mouse.y + tremorAt(t, 2.9) * amp };
+        tip = { x: pointer.x + grab.x + tremorAt(t, 0.4) * amp, y: pointer.y + grab.y + tremorAt(t, 2.9) * amp };
         const n = nearest(tip);
-        // 通路を逆走したり飛び越えたりしないように、進んだ位置を記録
         if (n.idx > maxIdx + 15) { finish({ score: 0.2, failure: cfg.failure || null }); return; }
         maxIdx = Math.max(maxIdx, n.idx);
         devSum += n.d; devN++;
@@ -79,7 +87,6 @@ export function run(container, cfg, ctx) {
       g.strokeStyle = '#d9a441'; g.lineWidth = 3;
       g.beginPath(); g.arc(P3.x, P3.y, 14, 0, Math.PI * 2); g.stroke();
       g.beginPath(); g.arc(P3.x, P3.y, 6, 0, Math.PI * 2); g.stroke();
-      // ピンセットの先
       const at = carrying ? tip : P0;
       g.strokeStyle = '#e8ecef'; g.lineWidth = 3;
       g.beginPath(); g.moveTo(at.x - 4, at.y); g.lineTo(at.x - 26, at.y - 40);
@@ -88,4 +95,9 @@ export function run(container, cfg, ctx) {
       g.beginPath(); g.arc(at.x, at.y, 5, 0, Math.PI * 2); g.fill();
     });
   });
+}
+
+/** 動作確認用：通路の形（自動テストで使う） */
+export function pathPoints(name = 'long') {
+  return PATHS[name];
 }

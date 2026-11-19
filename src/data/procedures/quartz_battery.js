@@ -282,7 +282,7 @@ export default {
       name: '動いているか確認する',
       needs: ['ac_reset'],
       target: 'coil',
-      targetAlso: ['rotor', 'movement_plate', 'circuit'],
+      targetAlso: ['step_rotor', 'movement_plate', 'circuit'],
       tool: 'loupe',
       minigames: [],
       message: 'ルーペでのぞくと、ステップモーターのローターが1秒ごとにピクッと回っている。正常に動き出した。',

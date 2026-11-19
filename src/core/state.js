@@ -17,7 +17,7 @@ export function createNewState() {
     completed: {}, // procedureId -> 回数
     customerIndex: 0,
     history: [], // { day, customer, stars, net }
-    settings: { guide: 'auto' }, // 'auto'（3回まで）/'on'/'off'
+    settings: { guide: 'auto', control: 'auto' }, // guide: 'auto'（3回まで）/'on'/'off'  control: 'auto'/'mouse'/'touch'
   };
 }
 
@@ -37,7 +37,9 @@ export function loadState() {
     const data = JSON.parse(raw);
     // 新しく追加された項目があっても壊れないよう、初期値と合成する
     const base = createNewState();
-    return { ...base, ...data, stock: { ...base.stock, ...data.stock }, settings: { ...base.settings, ...data.settings } };
+    // 最初から持っている道具が増えたときも、古いセーブに追加する
+    const ownedTools = [...new Set([...(data.ownedTools || []), ...base.ownedTools])];
+    return { ...base, ...data, ownedTools, stock: { ...base.stock, ...data.stock }, settings: { ...base.settings, ...data.settings } };
   } catch {
     return null;
   }

@@ -2,7 +2,8 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>時計修理工房</title>
   </head>
   <body>
@@ -16,25 +17,36 @@
     <div id="crosshair" class="show"></div>
     <div id="prompt"></div>
 
+    <!-- タッチ操作用（タブレット） -->
+    <div id="touch-ui">
+      <div id="joystick"><div id="joystick-knob"></div></div>
+      <button id="btn-interact">調べる</button>
+      <button id="btn-menu" aria-label="メニュー">☰</button>
+    </div>
+
     <!-- 作業モードの表示 -->
     <div id="bench-ui">
       <div id="steps">
-        <div id="steps-title"></div>
-        <div class="progress"><div id="steps-progress"></div></div>
-        <div id="quality-now"></div>
-        <ol id="steps-list"></ol>
+        <button id="steps-toggle" title="手順の表示を開く／閉じる">手順</button>
+        <div id="steps-body">
+          <div id="steps-title"></div>
+          <div class="progress"><div id="steps-progress"></div></div>
+          <div id="quality-now"></div>
+          <ol id="steps-list"></ol>
+        </div>
       </div>
       <div id="explain"></div>
-      <div id="bench-help">
-        <b>作業モードの操作</b>
-        <div>左クリック：道具を使う</div>
-        <div>右ドラッグ：時計を回す</div>
-        <div>F：表裏を返す / R：視点を戻す</div>
-        <div>ホイール：ズーム</div>
-        <div>L：ルーペ（4倍）</div>
-        <div>1〜0：道具の持ち替え</div>
-        <div>H：解説 / G：ガイド切替</div>
-        <button id="btn-stand">席を立つ（X）</button>
+      <div id="bench-controls">
+        <button id="bc-flip" title="表裏を返す（F）">表裏<small>F</small></button>
+        <button id="bc-left" title="左に回す">⟲</button>
+        <button id="bc-right" title="右に回す">⟳</button>
+        <button id="bc-zoomin" title="ズーム">＋</button>
+        <button id="bc-zoomout" title="ズームアウト">−</button>
+        <button id="bc-loupe" title="ルーペ（L）">ルーペ<small>L</small></button>
+        <button id="bc-reset" title="視点を戻す（R）">視点<small>R</small></button>
+        <button id="bc-explain" title="解説（H）">解説<small>H</small></button>
+        <button id="bc-guide" title="ガイド切替（G）">ガイド<small>G</small></button>
+        <button id="bc-stand" class="stand" title="席を立つ（X）">席を立つ<small>X</small></button>
       </div>
       <div id="tool-area">
         <div id="tool-desc"></div>
@@ -42,7 +54,6 @@
       </div>
     </div>
     <div id="part-label"></div>
-    <canvas id="loupe" width="240" height="240"></canvas>
     <div id="minigame"></div>
 
     <div id="modal"></div>
@@ -58,11 +69,19 @@
           <button id="btn-continue" class="primary">つづきから</button>
           <button id="btn-new">はじめから</button>
         </div>
+        <label class="title-control">操作方法：
+          <select id="title-control">
+            <option value="auto">自動（端末に合わせる）</option>
+            <option value="mouse">マウス・キーボード（タッチパッド）</option>
+            <option value="touch">タッチ（タブレット）</option>
+          </select>
+        </label>
         <div class="controls">
-          <div><b>工房</b>　WASD：移動　マウス：見回す　E：調べる・話す　Esc：一時停止</div>
-          <div><b>作業台</b>　クリック：道具を使う　右ドラッグ：回す　F：表裏　L：ルーペ　X：席を立つ</div>
+          <div><b>マウス</b>　WASD：移動　マウス：見回す　E：調べる　Esc：一時停止</div>
+          <div><b>タッチ</b>　左下スティック：移動　ドラッグ：見回す　［調べる］ボタン　☰：メニュー</div>
+          <div><b>作業台</b>　クリック／タップ2回：道具を使う　ドラッグ：回す　ピンチ・ホイール：ズーム</div>
         </div>
-        <p class="ver">第1段階：クォーツ腕時計の電池交換</p>
+        <p class="ver">第2段階：機械式腕時計のオーバーホール</p>
       </div>
     </div>
 
@@ -70,13 +89,20 @@
     <div id="pause">
       <div class="pause-box">
         <h2>一時停止中</h2>
-        <p>画面をクリックすると再開します</p>
+        <p id="pause-hint">画面をクリックすると再開します</p>
         <div class="pause-settings">
           <label>手順ガイド：
             <select id="guide-select">
               <option value="auto">自動（同じ作業を3回こなすまで表示）</option>
               <option value="on">いつも表示</option>
               <option value="off">表示しない（上級モード）</option>
+            </select>
+          </label>
+          <label>操作方法：
+            <select id="control-select">
+              <option value="auto">自動（端末に合わせる）</option>
+              <option value="mouse">マウス・キーボード（タッチパッド）</option>
+              <option value="touch">タッチ（タブレット）</option>
             </select>
           </label>
           <button id="btn-reset">セーブデータを消す</button>

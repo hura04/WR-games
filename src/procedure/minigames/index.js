@@ -5,5 +5,11 @@ import * as steady from './steady.js';
 import * as hold from './hold.js';
 import * as reading from './reading.js';
 import * as choice from './choice.js';
+import * as oil from './oil.js';
+import * as regulate from './regulate.js';
+import * as measure from './measure.js';
+import * as inspect from './inspect.js';
+import * as water from './water.js';
+import * as cleaner from './cleaner.js';
 
-export const MINIGAMES = { pressure, angle, steady, hold, reading, choice };
+export const MINIGAMES = { pressure, angle, steady, hold, reading, choice, oil, regulate, measure, inspect, water, cleaner };

@@ -18,11 +18,12 @@ export function run(container, cfg) {
     };
     const press = () => { if (!started) { started = true; held = true; } };
     const release = () => { if (held) { held = false; finish(judge()); } };
-    p.on(p.canvas, 'mousedown', (e) => { if (e.button === 0) press(); });
-    p.on(window, 'mouseup', release);
+    p.on(p.canvas, 'pointerdown', (e) => { if (e.button === 0) { press(); p.canvas.setPointerCapture?.(e.pointerId); } });
+    p.on(window, 'pointerup', release);
+    p.on(window, 'pointercancel', release);
     p.on(window, 'keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); press(); } });
     p.on(window, 'keyup', (e) => { if (e.code === 'Space') release(); });
-    p.status.textContent = '左ボタン（またはスペース）を押している間たまる → 緑の範囲で離す';
+    p.status.textContent = 'ゲージを押している間（長押し・タッチ・スペース）たまる → 緑の範囲で離す';
     p.loop((dt) => {
       if (done) return;
       t += dt;

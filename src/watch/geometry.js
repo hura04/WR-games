@@ -116,3 +116,63 @@ export function roundedBoxGeometry(w, h, d, r) {
   geo.rotateX(-Math.PI / 2);
   return geo;
 }
+
+/** 点の集まりを包む凸多角形（ギフト包装法）。points: [[x, y], ...] */
+export function convexHull(points) {
+  const pts = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return lower.concat(upper);
+}
+
+/**
+ * 受け（ブリッジ）の板。いくつかの円を包む形を厚み h で作る（y=0 が上面側＝地板側…ではなく底面）
+ * circles: [[x, z, r], ...]（時計の座標。z は6時方向が +）
+ */
+export function bridgeGeometry(circles, h, bevel = 0.12) {
+  const pts = [];
+  for (const [x, z, r] of circles)
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2;
+      pts.push([x + Math.cos(a) * r, -(z + Math.sin(a) * r)]); // 形の y = −z
+    }
+  const hull = convexHull(pts);
+  const shape = new THREE.Shape(hull.map(([x, y]) => new THREE.Vector2(x, y)));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: h - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, bevel, 0);
+  return geo;
+}
+
+/** 上から見た位置 (x, z) をそのまま UV にする（mm 単位 × scale） */
+export function planarUV(geo, scale = 1 / 25, offset = 0.5) {
+  const p = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) * scale + offset, -p.getZ(i) * scale + offset);
+  uv.needsUpdate = true;
+  return geo;
+}
+
+/** らせん（ヒゲゼンマイ）。中心から外へ turns 回巻く */
+export function spiralGeometry(r0, r1, turns, tube = 0.035) {
+  const pts = [];
+  const n = Math.floor(turns * 60);
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const a = t * turns * Math.PI * 2;
+    const r = r0 + (r1 - r0) * t;
+    pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+  }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n, tube, 4, false);
+}

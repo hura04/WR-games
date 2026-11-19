@@ -8,11 +8,12 @@ export function run(container, cfg, ctx) {
     const tremor = 0.035 * (ctx.tremor ?? 1);
     const finish = (r) => { if (done) return; done = true; p.close(); resolve(r); };
     bindCancel(p, finish);
-    p.on(p.canvas, 'mousedown', (e) => { if (e.button === 0) held = true; });
-    p.on(window, 'mouseup', () => { held = false; });
+    p.on(p.canvas, 'pointerdown', (e) => { if (e.button === 0) { held = true; p.canvas.setPointerCapture?.(e.pointerId); } });
+    p.on(window, 'pointerup', () => { held = false; });
+    p.on(window, 'pointercancel', () => { held = false; });
     p.on(window, 'keydown', (e) => { if (e.code === 'Space') { held = true; e.preventDefault(); } });
     p.on(window, 'keyup', (e) => { if (e.code === 'Space') held = false; });
-    p.status.textContent = '左ボタン（またはスペース）を押して力を入れる';
+    p.status.textContent = 'ゲージを押している間（クリック長押し・タッチ・スペース）力が入る';
     p.loop((dt) => {
       if (done) return;
       t += dt;

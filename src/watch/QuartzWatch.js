@@ -8,20 +8,8 @@
 // =============================================================
 import * as THREE from 'three';
 import { ringGeometry, discGeometry, gearGeometry, screwHead } from './geometry.js';
-import { dialTexture, casebackTexture, batteryTexture, labelTexture } from './textures.js';
-
-const metal = (color, rough = 0.35) =>
-  new THREE.MeshStandardMaterial({ color, metalness: 0.9, roughness: rough });
-const plain = (color, rough = 0.7) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
-
-function tag(obj, partId) {
-  obj.traverse((o) => {
-    if (o.isMesh) o.userData.partId = partId;
-  });
-  obj.userData.partId = partId;
-  obj.name = partId;
-  return obj;
-}
+import { batteryTexture, labelTexture } from './textures.js';
+import { buildExterior, tag, metal as metalMat, plain as plainMat } from './caseParts.js';
 
 function texturedCircle(r, texture, faceUp = true) {
   const geo = new THREE.CircleGeometry(r, 64);
@@ -44,79 +32,11 @@ export function buildQuartzWatch(def) {
     return obj;
   };
 
-  const R = def.caseDiameter / 2; // 18
-  const H = def.caseThickness; // 9
-  const yBack = -H / 2; // ケース裏面の高さ
-  const yFront = H / 2;
-  const caseMat = metal(def.caseColor, 0.28);
-
-  // ---- ケース（胴）とラグ ----
-  const caseGroup = new THREE.Group();
-  // 下側（裏蓋が当たる部分）は内径を小さく、上側（文字盤まわり）は風防の径に合わせる
-  const caseLower = new THREE.Mesh(ringGeometry(R, def.casebackDiameter / 2 - 0.6, 4.2, 0.5), caseMat);
-  caseLower.position.y = yBack;
-  const caseUpper = new THREE.Mesh(ringGeometry(R, def.crystalDiameter / 2, H - 1.6 - 4.0, 0.5), caseMat);
-  caseUpper.position.y = yBack + 4.0;
-  caseGroup.add(caseLower, caseUpper);
-  const lugGeo = new THREE.BoxGeometry(2.4, 3.2, 7);
-  for (const sx of [-1, 1])
-    for (const sz of [-1, 1]) {
-      const lug = new THREE.Mesh(lugGeo, caseMat);
-      lug.position.set(sx * (def.lugWidth / 2 + 1.2), yBack + 3.2, sz * (R + 1.5));
-      lug.rotation.x = sz * 0.12;
-      caseGroup.add(lug);
-    }
-  add('case', caseGroup);
-
-  // ---- ベゼル・風防・文字盤 ----
-  const bezel = new THREE.Mesh(ringGeometry(R - 0.3, def.crystalDiameter / 2, 1.4, 0.4), caseMat);
-  bezel.position.y = yFront - 1.6;
-  add('bezel', bezel);
-
-  const crystal = new THREE.Mesh(
-    discGeometry(def.crystalDiameter / 2, 1.0),
-    new THREE.MeshPhysicalMaterial({ color: '#ffffff', transmission: 0.95, transparent: true, opacity: 0.25, roughness: 0.02, thickness: 1 }),
-  );
-  crystal.position.y = yFront - 1.5;
-  add('crystal', crystal);
-
-  const dial = texturedCircle(def.crystalDiameter / 2 - 0.2, dialTexture(def));
-  dial.material.metalness = 0.1;
-  dial.material.roughness = 0.6;
-  dial.position.y = yFront - 3.2;
-  add('dial', dial);
-
-  // ---- 針（中心に回転軸） ----
-  const handMat = metal(def.handColor, 0.3);
-  const makeHand = (len, width, y, color) => {
-    const pivot = new THREE.Group();
-    const m = new THREE.Mesh(new THREE.BoxGeometry(width, 0.15, len), color ? plain(color, 0.4) : handMat);
-    m.position.set(0, 0, -len / 2 + len * 0.12);
-    pivot.add(m);
-    pivot.position.y = y;
-    return pivot;
-  };
-  const hourHand = makeHand(8.5, 1.1, yFront - 2.9);
-  const minuteHand = makeHand(12.5, 0.8, yFront - 2.7);
-  const secondHand = makeHand(13.5, 0.25, yFront - 2.5, '#c0392b');
-  const cap = new THREE.Mesh(discGeometry(0.7, 0.3), handMat);
-  cap.position.y = yFront - 2.5;
-  const hands = new THREE.Group();
-  hands.add(hourHand, minuteHand, secondHand, cap);
-  add('dial', hands, root); // 針も「文字盤」扱い（触らない部品）
-  parts.dial = dial;
-
-  // ---- リューズ ----
-  const crownGroup = new THREE.Group();
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 2.6, 28), caseMat);
-  crown.rotation.z = Math.PI / 2;
-  crown.position.x = R + 1.6;
-  const tube = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.2, 16), caseMat);
-  tube.rotation.z = Math.PI / 2;
-  tube.position.x = R + 0.1;
-  crownGroup.add(crown, tube);
-  crownGroup.position.y = yBack + 3.6;
-  add('crown', crownGroup);
+  // 外装（ケース・文字盤・針・ベルト・裏蓋など）は共通の部品で作る
+  const ext = buildExterior(def, add, root);
+  const yBack = ext.yBack;
+  const plain = plainMat;
+  const metal = (c, r = 0.35) => metalMat(c, r);
 
   // ---- ムーブメント ----
   const mvY = yBack + 1.2; // 地板の裏面（裏蓋側から見える面）の高さ
@@ -156,11 +76,11 @@ export function buildQuartzWatch(def) {
   // ローター（ステップモーター）
   const rotor = new THREE.Mesh(discGeometry(1.1, 0.6, 20), metal('#3b4048', 0.3));
   rotor.position.set(-1.6, mvY - 0.6, -5.5);
-  add('rotor', rotor);
+  add('step_rotor', rotor);
   const statorMat = metal('#9aa0a6', 0.5);
   const stator = new THREE.Mesh(ringGeometry(1.9, 1.25, 0.4), statorMat);
   stator.position.set(-1.6, mvY - 0.4, -5.5);
-  add('rotor', stator);
+  add('step_rotor', stator);
 
   // 輪列（歯車）
   const wheelMat = metal('#d8b765', 0.3);
@@ -242,54 +162,24 @@ export function buildQuartzWatch(def) {
   makeGasket('gasket_new', '#141414', 0.25).visible = false; // 新品：グリスでつやがある
   makeGasket('gasket_old_back', '#2a2725', 0.95).visible = false;
 
-  // ---- 裏蓋（こじ口つき） ----
-  const backR = def.casebackDiameter / 2;
-  const cbGroup = new THREE.Group();
-  const cbBody = new THREE.Mesh(discGeometry(backR, 1.0), metal('#b9bdc3', 0.3));
-  cbBody.position.y = -1.0;
-  const cbFace = texturedCircle(backR - 0.6, casebackTexture(), false);
-  cbFace.position.y = -1.01;
-  const cbStep = new THREE.Mesh(ringGeometry(backR - 0.6, backR - 1.4, 0.6), metal('#b9bdc3', 0.3));
-  cbStep.position.y = 0;
-  cbGroup.add(cbBody, cbFace, cbStep);
-  cbGroup.position.y = yBack;
-  add('caseback', cbGroup);
-  // こじ口（6時側のラグ寄り、裏蓋のふちの切り欠き）
-  // 裏蓋の面から見える暗いすき間として表現（外周から少しはみ出す）
-  const notch = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, 2.0), plain('#26282c', 0.6));
-  const notchAngle = Math.PI / 2 + 0.38; // 6時から少し4時側
-  notch.position.set(Math.cos(notchAngle) * (backR - 0.5), -1.1, Math.sin(notchAngle) * (backR - 0.5));
-  notch.rotation.y = -notchAngle + Math.PI / 2;
-  tag(notch, 'caseback_notch');
-  cbGroup.add(notch);
-  parts.caseback_notch = notch;
-
   // それぞれの部品の元の位置を覚えておく（戻すときに使う）
   for (const obj of Object.values(parts)) {
     obj.userData.home = { parent: obj.parent, position: obj.position.clone(), quaternion: obj.quaternion.clone() };
   }
 
   let rotorAngle = 0;
-  let lastSecond = -1;
   /**
    * 針を動かす
    * @param {Date} date
    * @param {'running'|'stopped'|'eol'} mode
    */
   function setTime(date, mode) {
-    const s = date.getSeconds();
-    const m = date.getMinutes() + s / 60;
-    const h = (date.getHours() % 12) + m / 60;
-    hourHand.rotation.y = -(h / 12) * Math.PI * 2;
-    minuteHand.rotation.y = -(m / 60) * Math.PI * 2;
-    if (mode === 'running') secondHand.rotation.y = -(s / 60) * Math.PI * 2;
-    if (mode === 'eol') secondHand.rotation.y = -((s - (s % 2)) / 60) * Math.PI * 2;
-    if (mode === 'running' && s !== lastSecond) {
-      rotorAngle += Math.PI;
+    const tick = ext.setHands(date, mode);
+    if (mode === 'running' && tick) {
+      rotorAngle += Math.PI; // ステップモーターは1秒ごとに180°
       rotor.rotation.y = rotorAngle;
     }
-    lastSecond = s;
   }
 
-  return { root, parts, setTime, frozenTime: new Date(2026, 0, 1, 10, 8, 37) };
+  return { root, parts, setTime, droop: ext.droop, frozenTime: new Date(2026, 0, 1, 10, 8, 37) };
 }

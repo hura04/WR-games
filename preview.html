@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>時計モデルの確認</title>
+    <style>
+      body { margin: 0; background: #15110e; color: #eee; font-family: sans-serif; overflow: hidden; }
+      #bar { position: fixed; left: 8px; top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+      #bar button { background: #3a2e24; color: #eee; border: 1px solid #8c6a2a; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <!-- 開発用：watches.js の時計の3Dモデルを確認するページ（npm run dev 中に /preview.html を開く） -->
+    <div id="bar"></div>
+    <script type="module" src="/src/preview.js"></script>
+  </body>
+</html>

@@ -21,6 +21,7 @@ export function createPanel(container, cfg, { width = 520, height = 240 } = {}) 
     <button class="mg-cancel">やめる（Esc）</button>`;
   container.appendChild(el);
   const canvas = el.querySelector('canvas');
+  canvas.style.touchAction = 'none'; // タッチでスクロールやズームが起きないように
   const ctx2d = canvas.getContext('2d');
   const status = el.querySelector('.mg-status');
   const buttons = el.querySelector('.mg-buttons');
@@ -38,6 +39,11 @@ export function createPanel(container, cfg, { width = 520, height = 240 } = {}) 
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
+    },
+    /** キャンバス上の位置（キャンバスの画素単位）に変換 */
+    local(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: ((e.clientX - r.left) / r.width) * canvas.width, y: ((e.clientY - r.top) / r.height) * canvas.height };
     },
     on(target, type, fn, opt) {
       target.addEventListener(type, fn, opt);
