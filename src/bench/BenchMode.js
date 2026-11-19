@@ -44,7 +44,7 @@ export class BenchMode {
     this.pivot = watchPivot;
     this.basket = basket;
     this.camera = new THREE.PerspectiveCamera(35, 1, 1, 4000);
-    this.target = new THREE.Vector3(48, 4, 12);
+    this.target = new THREE.Vector3(70, 4, 12); // 時計（x≈0）と部品トレイ（x≈40〜165）の真ん中あたり
     this.distance = DEFAULT_DIST;
     this.camDir = new THREE.Vector3(0, 1, 0.55).normalize();
     this.raycaster = new THREE.Raycaster();
@@ -308,7 +308,7 @@ export class BenchMode {
   }
 
   zoomBy(f) {
-    this.distance = Math.max(55, Math.min(380, this.distance * f));
+    this.distance = Math.max(55, Math.min(Math.max(380, (this.fitDist || 0) * 1.3), this.distance * f));
   }
 
   toggleGuide() {
@@ -342,7 +342,7 @@ export class BenchMode {
   resetView() {
     this.spin = 0;
     this.tilt = 0;
-    this.distance = DEFAULT_DIST;
+    this.distance = this.fitDist || DEFAULT_DIST;
   }
 
   /** いま上を向いている面 */
@@ -365,6 +365,13 @@ export class BenchMode {
     const dx = (left - right) / 2, dy = -bottom / 2;
     if (dx || dy) this.camera.setViewOffset(w, h, -dx, -dy, w, h);
     else this.camera.clearViewOffset();
+    // 空いている部分の横幅に、時計から部品トレイの右端まで（中心から左右±105mm）が入る距離
+    const freeFrac = Math.max(0.35, (w - left - right) / w);
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.aspect;
+    const prevFit = this.fitDist || DEFAULT_DIST;
+    this.fitDist = Math.max(DEFAULT_DIST, 105 / (freeFrac * tanHalf));
+    // 初期の距離のままなら、新しい画面の大きさに合わせる
+    if (Math.abs(this.distance - prevFit) < 1) this.distance = this.fitDist;
     this.camera.updateProjectionMatrix();
     Object.assign(this.overlayCam, { right: w, top: h });
     this.overlayCam.updateProjectionMatrix();
