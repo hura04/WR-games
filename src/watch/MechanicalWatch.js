@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { discGeometry, gearGeometry, ringGeometry, bridgeGeometry, planarUV, spiralGeometry, screwHead } from './geometry.js';
 import { genevaStripesTexture, perlageTexture, rotorTexture } from './textures.js';
-import { buildExterior, tag, metal, plain } from './caseParts.js';
+import { buildExterior, tag, metal, plain, addRingHitArea } from './caseParts.js';
 import { getMovement } from '../data/movements.js';
 
 /** テクスチャを部品ごとに複製して、mm 単位の UV に合わせる */
@@ -361,12 +361,14 @@ export function buildMechanicalWatch(def) {
   const seat = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.4, 8, 96), plain('#55585e', 0.8));
   seat.rotation.x = Math.PI / 2;
   seat.position.y = ext.yBack + 0.2;
+  addRingHitArea(seat, gasketR, 1.3, 0.35); // 細いので当たり判定を広げる
   add('gasket_seat', seat);
   const makeGasket = (id, color, rough) => {
     const g = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.5, 10, 96), plain(color, rough));
     g.scale.set(1, 1, 0.7);
     g.rotation.x = Math.PI / 2;
     g.position.y = ext.yBack - 0.15;
+    addRingHitArea(g, gasketR, 1.4, 0.6);
     return add(id, g);
   };
   makeGasket('gasket', '#2a2725', 0.95);

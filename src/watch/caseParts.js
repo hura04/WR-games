@@ -15,11 +15,26 @@ export const metal = (color, rough = 0.25, extra = {}) =>
 export const plain = (color, rough = 0.7, extra = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0, ...extra });
 
+const HIT_MAT = new THREE.MeshBasicMaterial({ visible: false });
+/**
+ * 細い部品（パッキンなど）用の「見えない当たり判定」。
+ * 見た目は変えずに、クリック・タップを受ける範囲だけ広げる。
+ * tube：当たり判定の太さ(mm)、flat：厚み方向の縮め具合（ケースや裏蓋の邪魔をしないため）
+ */
+export function addRingHitArea(mesh, radius, tube, flat = 0.45) {
+  const hit = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 6, 64), HIT_MAT);
+  hit.scale.set(1, 1, flat);
+  hit.userData.hitArea = true;
+  mesh.add(hit);
+  return hit;
+}
+
 /** 部品idをつける（中のメッシュのうち、まだidのないもの全部に） */
 export function tag(obj, partId) {
   obj.traverse((o) => {
     if (o.isMesh) {
       if (!o.userData.partId) o.userData.partId = partId;
+      if (o.userData.hitArea) return;
       o.castShadow = true;
       o.receiveShadow = true;
     }

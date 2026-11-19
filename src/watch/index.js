@@ -20,7 +20,7 @@ export function buildDisplayWatch(def, date = new Date(2026, 0, 1, 10, 8, 37)) {
   w.root.updateMatrixWorld(true);
   const buckets = new Map();
   w.root.traverse((o) => {
-    if (!o.isMesh) return;
+    if (!o.isMesh || o.userData.hitArea) return;
     for (let p = o; p; p = p.parent) if (!p.visible || hide.has(p.userData.partId) || hide.has(p.name)) return;
     if (Array.isArray(o.material)) return; // 複数材質のメッシュ（ベルトのふちなど）はそのまま
     const m = o.material;

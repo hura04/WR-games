@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { ringGeometry, discGeometry, gearGeometry, screwHead } from './geometry.js';
 import { batteryTexture, labelTexture } from './textures.js';
-import { buildExterior, tag, metal as metalMat, plain as plainMat } from './caseParts.js';
+import { buildExterior, tag, metal as metalMat, plain as plainMat, addRingHitArea } from './caseParts.js';
 
 function texturedCircle(r, texture, faceUp = true) {
   const geo = new THREE.CircleGeometry(r, 64);
@@ -151,11 +151,13 @@ export function buildQuartzWatch(def) {
   const seat = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.5, 8, 64), plain('#55585e', 0.8));
   seat.rotation.x = Math.PI / 2;
   seat.position.y = yBack + 0.05;
+  addRingHitArea(seat, gasketR, 1.3, 0.35);
   add('gasket_seat', seat);
   const makeGasket = (id, color, rough) => {
     const g = new THREE.Mesh(new THREE.TorusGeometry(gasketR, 0.45, 10, 64), plain(color, rough));
     g.rotation.x = Math.PI / 2;
     g.position.y = yBack - 0.15;
+    addRingHitArea(g, gasketR, 1.4, 0.4);
     return add(id, g);
   };
   makeGasket('gasket', '#2a2725', 0.95); // 古い：つやがない
