@@ -44,7 +44,7 @@ button.primary:hover:not(:disabled) { background: #ebb653; }
 /* ---------- 作業モード ---------- */
 #bench-ui { display: none; }
 #bench-ui.show { display: block; }
-#steps { position: fixed; left: 10px; top: 10px; width: 290px; max-height: calc(100vh - 170px); overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 12px; font-size: 13px; }
+#steps { position: fixed; left: 10px; top: 10px; width: 290px; max-height: calc(100vh - 110px); overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 12px; font-size: 13px; }
 #steps-title { font-family: var(--serif); font-size: 16px; color: var(--brass); margin-bottom: 8px; }
 .progress { height: 5px; background: #2a221b; border-radius: 3px; overflow: hidden; }
 #steps-progress { height: 100%; background: var(--brass); transition: width 0.4s; }
@@ -58,7 +58,7 @@ button.primary:hover:not(:disabled) { background: #ebb653; }
 #steps-list li em { color: var(--bad); font-style: normal; }
 #steps-list .hint { font-size: 12px; color: #a8e0b9; margin-top: 3px; }
 .explain-btn { position: absolute; right: 2px; top: 3px; font-size: 11px; padding: 2px 6px; }
-#explain { position: fixed; left: 312px; bottom: 150px; max-height: 50vh; overflow-y: auto; width: 340px; background: var(--panel); border: 1px solid var(--brass); border-radius: 8px; padding: 14px; font-size: 13.5px; line-height: 1.7; display: none; }
+#explain { position: fixed; left: 312px; bottom: 100px; max-height: 50vh; overflow-y: auto; width: 340px; background: var(--panel); border: 1px solid var(--brass); border-radius: 8px; padding: 14px; font-size: 13.5px; line-height: 1.7; display: none; }
 #explain.show { display: block; }
 #explain .ex-title { font-family: var(--serif); color: var(--brass); font-size: 15px; }
 #explain p { margin: 6px 0 10px; }
@@ -67,13 +67,6 @@ button.primary:hover:not(:disabled) { background: #ebb653; }
 #bench-controls button small { color: var(--brass); font-size: 10px; }
 #bench-controls button.on { background: #5a4426; border-color: var(--brass); }
 #bench-controls .stand { margin-top: 8px; border-color: var(--brass); }
-#tool-area { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(1100px, 96vw); text-align: center; }
-#tool-desc { font-size: 12.5px; color: var(--muted); background: var(--panel); display: inline-block; padding: 4px 10px; border-radius: 5px; margin-bottom: 6px; max-width: 100%; }
-#toolbar { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; align-items: center; max-height: 112px; overflow-y: auto; }
-#toolbar .tool { font-size: 12.5px; padding: 6px 9px; background: var(--panel); min-height: 34px; }
-#toolbar .tool-group { font-size: 10.5px; color: var(--brass); margin-left: 6px; padding: 2px 4px; border-left: 2px solid var(--brass-dark); }
-#toolbar .tool .key { display: inline-block; min-width: 16px; margin-right: 6px; color: var(--brass); font-weight: bold; }
-#toolbar .tool.selected { border-color: var(--brass); background: #5a4426; box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.4); }
 #part-label { position: fixed; pointer-events: none; background: rgba(20, 15, 11, 0.92); border: 1px solid var(--panel-line); border-radius: 5px; padding: 4px 9px; font-size: 12.5px; display: none; z-index: 20; }
 #part-label.show { display: block; }
 #part-label span { display: block; color: var(--muted); font-size: 11px; }
@@ -161,7 +154,7 @@ body.touch-mode #prompt { top: auto; bottom: 170px; }
 body.touch-mode button { min-height: 40px; }
 body.touch-mode .mg-panel { width: 640px; }
 body.touch-mode .mg-buttons button { font-size: 15px; padding: 10px 16px; }
-body.touch-mode #toolbar .tool { min-height: 42px; font-size: 13.5px; }
+body.touch-mode #toolbar .tool { width: 66px; height: 54px; }
 body.touch-mode .explain-btn { min-height: 26px !important; }
 .title-control { display: block; margin: 0 0 16px; color: var(--muted); font-size: 14px; }
 .title-control select, .pause-settings select { font-family: inherit; font-size: 13px; padding: 4px; background: #2a221b; color: var(--ink); border: 1px solid var(--panel-line); border-radius: 4px; }
@@ -169,8 +162,36 @@ body.touch-mode .explain-btn { min-height: 26px !important; }
 /* ---------- 画面が狭いとき（タブレットの縦向きなど） ---------- */
 @media (max-width: 1000px) {
   #steps { width: 240px; font-size: 12px; }
-  #explain { left: 10px; right: 96px; width: auto; bottom: 170px; }
+  #explain { left: 10px; right: 96px; width: auto; bottom: 100px; }
   #bench-controls button { min-width: 64px; font-size: 12px; }
   #hud { font-size: 12px; flex-wrap: wrap; gap: 4px; }
   .modal-box { padding: 16px; }
+}
+
+/* ---------- ホットバー（下の1段・10マス）と道具箱 ---------- */
+#tool-area { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); max-width: calc(100vw - 16px); display: flex; flex-direction: column; align-items: center; }
+#tool-desc { font-size: 12px; color: var(--muted); background: var(--panel); padding: 3px 10px; border-radius: 5px; margin-bottom: 5px; max-width: min(700px, 100%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#hotbar-row { display: flex; gap: 6px; align-items: stretch; }
+#toolbar { display: flex; gap: 3px; padding: 3px; background: rgba(20, 16, 12, 0.72); border: 1px solid var(--panel-line); border-radius: 8px; }
+#toolbar .tool { position: relative; width: 62px; height: 50px; padding: 12px 2px 2px; background: #2c241c; border: 1px solid #4a3d30; border-radius: 5px; font-size: 11px; line-height: 1.15; color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#toolbar .tool > span:not(.key) { white-space: nowrap; font-size: 10.5px; letter-spacing: -0.3px; }
+#toolbar .tool .key { position: absolute; left: 4px; top: 2px; font-size: 10px; color: var(--brass); font-weight: bold; }
+#toolbar .tool.empty { opacity: 0.35; }
+#toolbar .tool.selected { border-color: var(--brass); background: #5a4426; box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.55); }
+#btn-toolbox { width: 66px; background: var(--panel); font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+#btn-toolbox small { color: var(--brass); font-size: 10px; }
+#btn-toolbox.open { border-color: var(--brass); }
+#toolbox { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(720px, calc(100vw - 20px)); max-height: 55vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--brass); border-radius: 8px; padding: 12px; display: none; z-index: 15; }
+#toolbox.show { display: block; }
+.toolbox-head { font-family: var(--serif); color: var(--brass); font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.toolbox-head span { font-family: inherit; font-size: 11.5px; color: var(--muted); flex: 1; }
+.toolbox-group { font-size: 11px; color: var(--brass); margin: 8px 0 4px; border-left: 2px solid var(--brass-dark); padding-left: 6px; }
+.toolbox-items { display: flex; flex-wrap: wrap; gap: 5px; }
+.toolbox-items button { font-size: 12.5px; padding: 6px 10px; background: #2c241c; }
+.toolbox-items button.selected { border-color: var(--brass); background: #5a4426; }
+.toolbox-items button.in-bar::after { content: ' ●'; color: var(--brass); font-size: 9px; }
+@media (max-width: 760px) {
+  #toolbar .tool { width: 50px; height: 46px; }
+  #toolbar .tool > span:not(.key) { font-size: 8.5px; }
+  #btn-toolbox { width: 52px; font-size: 11px; }
 }

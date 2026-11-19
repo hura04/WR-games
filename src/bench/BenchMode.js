@@ -5,7 +5,7 @@
 //   左クリック : 持っている道具で部品を使う
 //   右ドラッグ / 何もない所を左ドラッグ : 時計を回す
 //   ホイール・ピンチ : ズーム    F : 表裏を返す    L : ルーペ
-//   1〜0 : 道具の持ち替え   H : 解説   G : ガイド   X : 席を立つ
+//   1〜0 : ホットバーの道具に持ち替え   Tab : 道具箱   H : 解説   G : ガイド   X : 席を立つ
 // 操作（タッチ）
 //   部品をタップ → もう一度タップで道具を使う
 //   1本指で何もない所をドラッグ / 2本指ドラッグ : 回す   ピンチ : ズーム
@@ -18,7 +18,7 @@ import { ProcedureRunner } from '../procedure/ProcedureRunner.js';
 import { MINIGAMES } from '../procedure/minigames/index.js';
 import { FAILURES } from '../data/failures.js';
 import { getProcedure } from '../data/procedures/index.js';
-import { getTool, TOOL_GROUPS } from '../data/tools.js';
+import { getTool, TOOL_GROUPS, DEFAULT_HOTBAR, HOTBAR_SIZE } from '../data/tools.js';
 import { getConsumable } from '../data/consumables.js';
 import { getOil } from '../data/oils.js';
 import { partName, PARTS } from '../data/parts.js';
@@ -26,7 +26,7 @@ import { getService } from '../data/services.js';
 import { readVoltage, judgeVoltage } from '../sim/quartzSim.js';
 import { measure, amplitudeOf, applyOiling, finalScore, rateOf, beatErrorOf } from '../sim/mechanicalSim.js';
 import { tween, updateTweens } from '../core/tween.js';
-import { guideEnabled } from '../core/state.js';
+import { guideEnabled, saveState } from '../core/state.js';
 import { getEnvironment } from '../core/render.js';
 import { batteryTexture } from '../watch/textures.js';
 
@@ -179,6 +179,7 @@ export class BenchMode {
 
   exit() {
     this.active = false;
+    this.toggleToolbox(false);
     this.loupeOn = false;
     this.selectedPart = null;
     $('hud').classList.add('show');
@@ -271,12 +272,12 @@ export class BenchMode {
     }, { passive: false });
     window.addEventListener('keydown', (e) => {
       if (!this.active || this.busy) return;
-      if (/^Digit\d$/.test(e.code)) {
-        const tools = this.#ownedTools();
-        const n = Number(e.code.slice(5));
-        const t = tools[n === 0 ? 9 : n - 1];
-        if (t) this.selectTool(t.id);
+      if (/^(Digit|Numpad)\d$/.test(e.code)) {
+        const n = Number(e.code.slice(-1));
+        const id = this.#hotbar()[n === 0 ? 9 : n - 1];
+        if (id) this.selectTool(id);
       }
+      if (e.code === 'Tab') { e.preventDefault(); this.toggleToolbox(); }
       if (e.code === 'KeyL') this.toggleLoupe();
       if (e.code === 'KeyF') this.flipWatch();
       if (e.code === 'KeyR') this.resetView();
@@ -300,6 +301,8 @@ export class BenchMode {
     on('bc-guide', () => this.toggleGuide());
     on('bc-stand', () => this.game.leaveBench());
     on('steps-toggle', () => { $('steps').classList.toggle('collapsed'); this.#resize(); });
+    on('btn-toolbox', () => this.toggleToolbox());
+    on('toolbox-close', () => this.toggleToolbox(false));
   }
 
   #rotateBy(dx, dy) {
@@ -323,8 +326,79 @@ export class BenchMode {
     return owned;
   }
 
+  /**
+   * ホットバー（下の10マス）に並ぶ道具id。
+   * セーブされた並びのうち今の時計で使う道具だけを残し、空いたマスは使う道具で埋める
+   */
+  #hotbar() {
+    const usable = this.#ownedTools().map((t) => t.id);
+    const saved = this.game.state.hotbar || DEFAULT_HOTBAR;
+    const bar = saved.slice(0, HOTBAR_SIZE).map((id) => (usable.includes(id) ? id : null));
+    for (const id of usable) {
+      if (bar.includes(id)) continue;
+      const empty = bar.indexOf(null);
+      if (empty < 0) break;
+      bar[empty] = id;
+    }
+    while (bar.length < HOTBAR_SIZE) bar.push(null);
+    return bar;
+  }
+
+  /** 道具をホットバーに入れる（入っていなければ、いちばん長く使っていないマスと入れ替え） */
+  #putInHotbar(id) {
+    const bar = this.#hotbar();
+    if (bar.includes(id)) return;
+    this.lastUsed ||= {};
+    let slot = bar.indexOf(null);
+    if (slot < 0) {
+      let oldest = Infinity;
+      bar.forEach((t, i) => {
+        if (t === this.toolId) return; // 今持っている道具は残す
+        const used = this.lastUsed[t] || 0;
+        if (used < oldest) { oldest = used; slot = i; }
+      });
+    }
+    bar[slot] = id;
+    this.game.state.hotbar = bar;
+    saveState(this.game.state);
+  }
+
+  toggleToolbox(open = !$('toolbox').classList.contains('show')) {
+    $('toolbox').classList.toggle('show', open);
+    $('btn-toolbox').classList.toggle('open', open);
+    if (open) this.#renderToolbox();
+  }
+
+  #renderToolbox() {
+    const list = $('toolbox-list');
+    list.innerHTML = '';
+    const bar = this.#hotbar();
+    const tools = this.#ownedTools();
+    for (const group of TOOL_GROUPS) {
+      const inGroup = tools.filter((t) => t.group === group);
+      if (!inGroup.length) continue;
+      const h = document.createElement('div');
+      h.className = 'toolbox-group';
+      h.textContent = group;
+      const items = document.createElement('div');
+      items.className = 'toolbox-items';
+      for (const t of inGroup) {
+        const b = document.createElement('button');
+        b.className = (t.id === this.toolId ? 'selected ' : '') + (bar.includes(t.id) ? 'in-bar' : '');
+        b.textContent = t.name;
+        b.title = t.desc;
+        b.onclick = () => { this.#putInHotbar(t.id); this.selectTool(t.id); this.toggleToolbox(false); };
+        items.appendChild(b);
+      }
+      list.append(h, items);
+    }
+  }
+
   selectTool(id) {
     this.toolId = id;
+    this.lastUsed ||= {};
+    this.lastUsed[id] = performance.now();
+    if (!this.#hotbar().includes(id)) this.#putInHotbar(id);
     this.#renderTools();
     if (this.selectedPart) this.#showLabel(this.selectedPart, true);
     else this.#updateHover();
@@ -811,26 +885,22 @@ export class BenchMode {
   #renderTools() {
     const bar = $('toolbar');
     bar.innerHTML = '';
-    const tools = this.#ownedTools();
-    let lastGroup = null;
-    tools.forEach((t, i) => {
-      if (t.group !== lastGroup) {
-        lastGroup = t.group;
-        const g = document.createElement('span');
-        g.className = 'tool-group';
-        g.textContent = t.group;
-        bar.appendChild(g);
-      }
+    this.#hotbar().forEach((id, i) => {
+      const t = id && getTool(id);
       const b = document.createElement('button');
-      b.className = 'tool' + (t.id === this.toolId ? ' selected' : '');
-      b.innerHTML = `${i < 10 ? `<span class="key">${i === 9 ? 0 : i + 1}</span>` : ''}${t.name}`;
-      b.title = t.desc;
-      b.onclick = () => this.selectTool(t.id);
+      b.className = 'tool' + (!t ? ' empty' : '') + (t && t.id === this.toolId ? ' selected' : '');
+      const label = t ? (t.short || t.name).split('|').map((x) => `<span>${x}</span>`).join('') : '';
+      b.innerHTML = `<span class="key">${i === 9 ? 0 : i + 1}</span>${label}`;
+      if (t) {
+        b.title = `${t.name}：${t.desc}`;
+        b.dataset.tool = t.id;
+        b.onclick = () => this.selectTool(t.id);
+      } else b.onclick = () => this.toggleToolbox(true);
       bar.appendChild(b);
     });
     const t = getTool(this.toolId);
     $('tool-desc').textContent = t ? `${t.name}：${t.desc}` : '';
-    void TOOL_GROUPS;
+    if ($('toolbox').classList.contains('show')) this.#renderToolbox();
   }
 
   // ------------------------------------------------------------
