@@ -185,7 +185,7 @@ export async function runHandover(ui, job, state, onTalking) {
   r.failures.forEach((f) => (failCounts[f.type] = (failCounts[f.type] || 0) + 1));
   const rows = [
     ...Object.entries(failCounts).map(([t, n]) => `<li>${FAILURES[t].label} ×${n}<span>−${FAILURES[t].quality * n}点</span></li>`),
-    ...(r.skillLoss > 0.5 ? [`<li>操作の精度<span>−${Math.round(r.skillLoss)}点</span></li>`] : []),
+    ...(r.skillPenalty() > 0.5 ? [`<li>操作の精度<span>−${Math.round(r.skillPenalty())}点</span></li>`] : []),
     ...res.extras.map((e) => `<li>${esc(e.label)}<span>−${e.loss}点</span></li>`),
   ];
   const fm = job.finalMeasurement;

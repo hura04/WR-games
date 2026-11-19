@@ -152,7 +152,7 @@ export class ProcedureRunner {
   /** 仕上がり点 0..100 */
   quality(extraLoss = 0) {
     const failLoss = this.failures.reduce((sum, f) => sum + FAILURES[f.type].quality, 0);
-    const q = 100 - failLoss - this.skillLoss * this.#skillScale() - extraLoss;
+    const q = 100 - failLoss - this.skillPenalty() - extraLoss;
     return Math.round(Math.max(0, Math.min(100, q)));
   }
 
@@ -164,6 +164,11 @@ export class ProcedureRunner {
   #skillScale() {
     const total = this.steps.filter((s) => !s.optional).reduce((sum, s) => sum + (s.weight ?? 10), 0);
     return total > SKILL_REF_WEIGHT ? SKILL_REF_WEIGHT / total : 1;
+  }
+
+  /** 操作精度の減点（工程の数に合わせて縮めたあとの点数） */
+  skillPenalty() {
+    return this.skillLoss * this.#skillScale();
   }
 
   /** 失敗による追加費用の合計（円） */

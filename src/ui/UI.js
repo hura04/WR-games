@@ -41,6 +41,8 @@ export class UI {
    */
   openModal(html, cls = '') {
     const m = $('modal');
+    // 会話・見積もり・評価の画面が開いたら、上に重なる古いお知らせは消す
+    $('toasts').innerHTML = '';
     m.className = `show ${cls}`;
     m.innerHTML = `<div class="modal-box">${html}</div>`;
     return m.querySelector('.modal-box');
