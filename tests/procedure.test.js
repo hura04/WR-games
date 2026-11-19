@@ -175,6 +175,23 @@ describe('機械式オーバーホールの工程ルール', () => {
     return r;
   };
 
+  it('工程が多くても、操作精度の減点は電池交換と同じくらいの大きさにそろう', () => {
+    // 全工程を「出来 0.8」でこなしたとき
+    const r = make();
+    let guard = 0;
+    while (!r.isFinished() && guard++ < 300) {
+      const next = r.availableSteps().find((s) => !s.station) || r.availableSteps()[0]; // 保護シートなども全部やる
+      r.complete(next.id, 0.8);
+    }
+    const q = new ProcedureRunner(proc, { services: new Set(['battery_change', 'gasket_change']) });
+    guard = 0;
+    while (!q.isFinished() && guard++ < 100) q.complete(q.availableSteps()[0].id, 0.8);
+    expect(r.failures).toEqual([]);
+    expect(q.failures).toEqual([]);
+    expect(Math.abs(r.quality() - q.quality())).toBeLessThanOrEqual(3);
+    expect(r.quality()).toBeGreaterThanOrEqual(70);
+  });
+
   it('最初はベルトを外すところから', () => {
     expect(make().availableSteps().map((s) => s.id)).toEqual(['remove_strap']);
   });

@@ -14,6 +14,9 @@
 // =============================================================
 import { FAILURES } from '../data/failures.js';
 
+/** 操作精度の減点の基準（電池交換1回分の工程の重み合計） */
+const SKILL_REF_WEIGHT = 140;
+
 export class ProcedureRunner {
   /**
    * @param {object} procedure 工程データ
@@ -149,8 +152,18 @@ export class ProcedureRunner {
   /** 仕上がり点 0..100 */
   quality(extraLoss = 0) {
     const failLoss = this.failures.reduce((sum, f) => sum + FAILURES[f.type].quality, 0);
-    const q = 100 - failLoss - this.skillLoss - extraLoss;
+    const q = 100 - failLoss - this.skillLoss * this.#skillScale() - extraLoss;
     return Math.round(Math.max(0, Math.min(100, q)));
+  }
+
+  /**
+   * 操作精度の減点の縮め具合。
+   * 工程が多い作業ほど1工程あたりの減点を小さくして、
+   * 作業全体での減点の大きさが、電池交換（重み合計140）と同じくらいになるようにする。
+   */
+  #skillScale() {
+    const total = this.steps.filter((s) => !s.optional).reduce((sum, s) => sum + (s.weight ?? 10), 0);
+    return total > SKILL_REF_WEIGHT ? SKILL_REF_WEIGHT / total : 1;
   }
 
   /** 失敗による追加費用の合計（円） */
