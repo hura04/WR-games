@@ -559,16 +559,16 @@ export default {
     {
       id: 'install_new_gasket', name: '新しいパッキンにグリスを塗って装着する', side: 'back', needs: ['install_rotor', 'remove_old_gasket'],
       when: { service: 'gasket_change', is: true },
-      target: 'gasket_seat', tool: 'silicone_grease', consumes: { gasket_33: 1 },
+      target: 'gasket_seat', targetAlso: ['case', 'casing_ring'], tool: 'silicone_grease', consumes: { gasket_33: 1 }, // 溝はケースの一部なのでケースでもOK
       minigames: [{ type: 'hold', title: 'グリスを塗る', instruction: '薄く均一な量（緑の範囲）で離してください。', unit: '%', rate: 40, max: 100, windowMin: 35, windowMax: 60, failureLow: 'too_little_grease', failure: 'too_much_grease' }],
       onDone: { show: 'gasket_new' },
       explain: 'ねじ込み式の裏蓋のパッキンは、締め込んで押しつぶされることで水を防ぎます。一度つぶれたパッキンは元に戻らないので、オーバーホールのたびに交換するのが基本です。',
-      hint: '「シリコングリス」でケースのパッキン溝をクリック',
+      hint: '「シリコングリス」でケース（パッキン溝のあたり）をクリック',
     },
     {
       id: 'reinstall_old_gasket', name: '古いパッキンを戻す', side: 'back', needs: ['install_rotor', 'remove_old_gasket'],
       when: { service: 'gasket_change', is: false },
-      target: 'gasket_seat', tool: 'plastic_tweezers', autoFailure: 'old_gasket',
+      target: 'gasket_seat', targetAlso: ['case', 'casing_ring'], tool: 'plastic_tweezers', autoFailure: 'old_gasket',
       minigames: [],
       onDone: { show: 'gasket_old_back' },
       explain: '見積もりにパッキン交換が入っていないので古いパッキンを戻しますが、つぶれたパッキンでは防水性は戻りません。',

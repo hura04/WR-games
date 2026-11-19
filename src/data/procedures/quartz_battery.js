@@ -296,6 +296,7 @@ export default {
       when: { service: 'gasket_change', is: true },
       needs: ['check_running', 'remove_old_gasket'],
       target: 'gasket_seat',
+      targetAlso: ['case'], // 溝はケースの一部なのでケースでもOK
       tool: 'silicone_grease',
       consumes: { gasket_28: 1 },
       minigames: [
@@ -323,6 +324,7 @@ export default {
       when: { service: 'gasket_change', is: false },
       needs: ['check_running', 'remove_old_gasket'],
       target: 'gasket_seat',
+      targetAlso: ['case'],
       tool: 'plastic_tweezers',
       autoFailure: 'old_gasket',
       minigames: [],
