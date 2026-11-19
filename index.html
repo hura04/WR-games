@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>時計修理工房</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- 工房を歩いているときの表示 -->
+    <div id="hud">
+      <div class="hud-left"><span id="hud-day"></span><span id="hud-money"></span><span id="hud-rep"></span></div>
+      <div class="hud-right" id="hud-job"></div>
+    </div>
+    <div id="crosshair" class="show"></div>
+    <div id="prompt"></div>
+
+    <!-- 作業モードの表示 -->
+    <div id="bench-ui">
+      <div id="steps">
+        <div id="steps-title"></div>
+        <div class="progress"><div id="steps-progress"></div></div>
+        <div id="quality-now"></div>
+        <ol id="steps-list"></ol>
+      </div>
+      <div id="explain"></div>
+      <div id="bench-help">
+        <b>作業モードの操作</b>
+        <div>左クリック：道具を使う</div>
+        <div>右ドラッグ：時計を回す</div>
+        <div>F：表裏を返す / R：視点を戻す</div>
+        <div>ホイール：ズーム</div>
+        <div>L：ルーペ（4倍）</div>
+        <div>1〜0：道具の持ち替え</div>
+        <div>H：解説 / G：ガイド切替</div>
+        <button id="btn-stand">席を立つ（X）</button>
+      </div>
+      <div id="tool-area">
+        <div id="tool-desc"></div>
+        <div id="toolbar"></div>
+      </div>
+    </div>
+    <div id="part-label"></div>
+    <canvas id="loupe" width="240" height="240"></canvas>
+    <div id="minigame"></div>
+
+    <div id="modal"></div>
+    <div id="toasts"></div>
+
+    <!-- タイトル -->
+    <div id="title">
+      <div class="title-box">
+        <div class="title-sub">WATCH REPAIR WORKSHOP</div>
+        <h1>時計修理工房</h1>
+        <p>お客さんの大切な時計を、本物の職人の手順で直していきましょう。</p>
+        <div class="title-buttons">
+          <button id="btn-continue" class="primary">つづきから</button>
+          <button id="btn-new">はじめから</button>
+        </div>
+        <div class="controls">
+          <div><b>工房</b>　WASD：移動　マウス：見回す　E：調べる・話す　Esc：一時停止</div>
+          <div><b>作業台</b>　クリック：道具を使う　右ドラッグ：回す　F：表裏　L：ルーペ　X：席を立つ</div>
+        </div>
+        <p class="ver">第1段階：クォーツ腕時計の電池交換</p>
+      </div>
+    </div>
+
+    <!-- 一時停止 -->
+    <div id="pause">
+      <div class="pause-box">
+        <h2>一時停止中</h2>
+        <p>画面をクリックすると再開します</p>
+        <div class="pause-settings">
+          <label>手順ガイド：
+            <select id="guide-select">
+              <option value="auto">自動（同じ作業を3回こなすまで表示）</option>
+              <option value="on">いつも表示</option>
+              <option value="off">表示しない（上級モード）</option>
+            </select>
+          </label>
+          <button id="btn-reset">セーブデータを消す</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
