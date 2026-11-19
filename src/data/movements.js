@@ -37,8 +37,8 @@ export const MOVEMENTS = {
     ratchet: { pos: [4.6, -3.4], r: 4.0, layer: 3.55 },
     crownWheel: { pos: [9.6, -0.2], r: 1.9, layer: 3.55 },
     click: { pos: [7.2, -7.4] },
-    settingLever: { pos: [10.3, 2.4] }, // オシドリの押し込み位置（裏から押す）
-    dialScrews: [[-11.6, -2.6], [11.2, 4.8]],
+    settingLever: { pos: [9.4, 5.0] }, // オシドリの押し込み位置（裏から押す）
+    dialScrews: [[-11.6, -2.6], [11.5, 6.3]],
     rotor: { r: 12.3, layer: 4.7, h: 0.8 },
     // 文字盤側（表）の部品
     hourWheel: { r: 3.6 },
