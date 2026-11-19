@@ -464,10 +464,10 @@ export default {
     },
     {
       id: 'oil_pallet_stones', name: 'アンクルの爪石に注油する', side: 'back', needs: ['install_balance'],
-      target: 'pallet_fork', targetAlso: ['escape_wheel'], tool: 'oiler',
+      target: 'pallet_fork', targetAlso: ['escape_wheel', 'pallet_bridge'], tool: 'oiler', // 受けの横のすき間から差す
       minigames: [{ type: 'oil', title: '爪石', oil: 'oil_pallet', instruction: '動いている状態で、ガンギ車の歯先に専用油をごく少量。歯が回るにつれて爪石へ行き渡ります。' }],
       explain: 'ガンギ車の歯とアンクルの爪石がこすれ合う面には、広がりにくい専用の油を使います。時計を動かしながら、数本の歯先にごく少量つけると、回るにつれて爪石全体に行き渡ります。',
-      hint: '「オイラー」でアンクル（またはガンギ車）をクリック',
+      hint: '「オイラー」でアンクル受けのあたり（アンクル・ガンギ車）をクリック',
     },
     // ======================= 調整 =======================
     {
@@ -479,10 +479,10 @@ export default {
     },
     {
       id: 'adjust_rate', name: '歩度を調整する（緩急調整）', side: 'back', needs: ['adjust_beat'],
-      target: 'regulator', tool: 'timegrapher',
+      target: 'regulator', targetAlso: ['balance_cock'], tool: 'timegrapher',
       minigames: [{ type: 'regulate', mode: 'rate', title: '緩急調整', instruction: '緩急針を＋（進む）−（遅れる）へ少しずつ動かして、1日 0〜+5秒くらいの「少し進み」に合わせます。' }],
       explain: '緩急針はヒゲゼンマイの働く長さを少しだけ変える針。＋側へ動かすとヒゲが短くなってテンプが速く振れ、時計が進みます。機械式時計は着けていると少し遅れがちなので、0〜+5秒/日の「少し進み」に合わせるのが一般的です。',
-      hint: '「タイムグラファー」でテンプ受けの上の細い針（緩急針）をクリック',
+      hint: '「タイムグラファー」でテンプ受けの上の細い針（緩急針）か、テンプ受けをクリック',
     },
     {
       id: 'install_auto_bridge', name: '自動巻き機構を組み込む', side: 'back', needs: ['adjust_rate'],
@@ -520,7 +520,7 @@ export default {
     },
     {
       id: 'install_hands', name: '針を取り付ける', side: 'dial', needs: ['install_dial'],
-      target: 'hands', tool: 'hand_press',
+      target: 'hands', targetAlso: ['dial'], tool: 'hand_press', // 小さいので文字盤の中心でもOK
       wrongTools: { hand: { message: '指では真上から均等な力をかけられません。針付け工具を使いましょう。' }, metal_tweezers: 'hand_bent' },
       minigames: [
         { type: 'angle', title: '真上から押す', instruction: '針付け工具を針の根元に真上（90°）から当てます。', targetMin: 85, targetMax: 95, min: 45, max: 135, failOn: 0.35, failure: 'hand_bent' },
