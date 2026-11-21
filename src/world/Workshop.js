@@ -42,15 +42,16 @@ function cyl(rt, rb, h, material, x, y, z, seg = 24) {
 /** 壁かけ時計：丸い文字盤と3本の針（z+ を向く）。update で針を動かす */
 function wallClock(radius, faceColor, rimColor) {
   const g = new THREE.Group();
+  // 裏板（z: -0.02〜0.02）より 5mm 手前に文字盤を置く（同じ面に重ねるとチラつくため）
   const face = new THREE.Mesh(new THREE.CircleGeometry(radius, 48), new THREE.MeshStandardMaterial({ map: clockFaceTexture(faceColor), roughness: 0.7 }));
-  face.position.z = 0.02;
+  face.position.z = 0.025;
   const rim = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * 0.08, 10, 48), mat(rimColor, 0.4, 0.3));
-  rim.position.z = 0.02;
+  rim.position.z = 0.025;
   const back = cyl(radius, radius, 0.04, mat(rimColor, 0.6), 0, 0, 0);
   back.rotation.x = Math.PI / 2;
   g.add(back, face, rim);
   const glass = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.98, 48), new THREE.MeshPhysicalMaterial({ color: '#fff', transparent: true, opacity: 0.12, roughness: 0.02 }));
-  glass.position.z = 0.05;
+  glass.position.z = 0.055;
   g.add(glass);
   const hand = (len, w, color, z) => {
     const p = new THREE.Group();
@@ -60,9 +61,9 @@ function wallClock(radius, faceColor, rimColor) {
     g.add(p);
     return p;
   };
-  const hH = hand(radius * 0.5, radius * 0.07, '#1a1a1a', 0.026);
-  const mH = hand(radius * 0.75, radius * 0.045, '#1a1a1a', 0.03);
-  const sH = hand(radius * 0.82, radius * 0.015, '#9a2a1e', 0.034);
+  const hH = hand(radius * 0.5, radius * 0.07, '#1a1a1a', 0.032);
+  const mH = hand(radius * 0.75, radius * 0.045, '#1a1a1a', 0.037);
+  const sH = hand(radius * 0.82, radius * 0.015, '#9a2a1e', 0.042);
   g.userData.update = (date) => {
     const s = date.getSeconds() + date.getMilliseconds() / 1000;
     const m = date.getMinutes() + s / 60;
@@ -371,7 +372,7 @@ export function buildWorkshop() {
 
   // ---------------- 壁の時計たち ----------------
   const clockA = wallClock(0.22, '#f4ecd8', '#5a3d2a');
-  clockA.position.set(-0.2, 2.15, ROOM.minZ + 0.03);
+  clockA.position.set(-2.0, 2.25, ROOM.minZ + 0.03); // 作業台の上。看板・カーテンと重ならない位置
   scene.add(clockA);
   animated.push((d) => clockA.userData.update(d));
   const clockB = wallClock(0.16, '#ffffff', '#1d1d1d');
@@ -382,17 +383,20 @@ export function buildWorkshop() {
   // 振り子時計（ウィーン式レギュレーター）。振り子の長さ約25cm → 周期約1秒
   const reg = new THREE.Group();
   const regWood = new THREE.MeshStandardMaterial({ map: woodTexture('#5a2e1a', 13), roughness: 0.45 });
-  reg.add(box(0.36, 1.05, 0.14, regWood, 0, 0, 0));
+  // 中が見えるガラス扉の箱：背板・左右の柱・上下の飾り
+  reg.add(box(0.34, 1.05, 0.02, regWood, 0, 0, -0.06)); // 背板
+  reg.add(box(0.04, 1.05, 0.14, regWood, -0.17, 0, 0)); // 左の柱
+  reg.add(box(0.04, 1.05, 0.14, regWood, 0.17, 0, 0)); // 右の柱
   reg.add(box(0.42, 0.08, 0.17, regWood, 0, 0.56, 0));
   reg.add(box(0.4, 0.06, 0.16, regWood, 0, -0.55, 0));
-  const regGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.9), glassMat);
-  regGlass.position.z = 0.072;
+  const regGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 1.0), glassMat);
+  regGlass.position.z = 0.075;
   reg.add(regGlass);
   const regFace = wallClock(0.11, '#f8f2e2', '#c9a24a');
-  regFace.position.set(0, 0.3, 0.05);
+  regFace.position.set(0, 0.3, -0.025); // 背板（前面 -0.05）より手前
   reg.add(regFace);
   const pendulum = new THREE.Group();
-  pendulum.position.set(0, 0.15, 0.05);
+  pendulum.position.set(0, 0.15, -0.02);
   pendulum.add(box(0.008, 0.55, 0.004, mat('#c9a24a', 0.3, 1), 0, -0.27, 0));
   const bob = cyl(0.055, 0.055, 0.012, mat('#d9b45a', 0.15, 1), 0, -0.56, 0);
   bob.rotation.x = Math.PI / 2;
