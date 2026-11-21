@@ -89,7 +89,7 @@ export default {
       minigames: [{ type: 'steady', title: 'ムーブメントを取り出す', instruction: '中枠ごとムーブメントを持ち上げ、ケースを作業台の脇に置きます。', corridor: 40, tremor: 3, failOn: 0.3, failure: 'drop', path: 'short' }],
       onDone: { moveGroup: ['case', 'bezel', 'crystal', 'casing_ring', 'gasket_seat', 'gasket', 'gasket_new', 'gasket_old_back'], to: 'case_rest' },
       explain: '巻真を抜くと、ムーブメントはケースから外せます。文字盤と針は付いたまま取り出します。中枠（ムーブメントとケースのすき間を埋めるリング）は、ケース側に残しておきます。',
-      hint: '「手（指）」で、ムーブメントのまわりの黒い中枠をクリック',
+      hint: '「手」で、ムーブメントのまわりの黒い中枠をクリック',
     },
     {
       id: 'remove_dial_screws', name: '文字盤足のネジをゆるめる', side: 'back', needs: ['remove_movement'],
@@ -128,7 +128,7 @@ export default {
       minigames: [{ type: 'steady', title: '文字盤を持ち上げる', instruction: '文字盤のふちを持ち、まっすぐ持ち上げてトレイへ。表面には触れないように。', corridor: 38, tremor: 3, failOn: 0.3, failure: 'drop', path: 'short' }],
       onDone: { move: 'dial', to: 'tray' },
       explain: '文字盤は指紋ひとつで価値が下がる部品です。表面には触らず、ふちだけを持って外し、ふた付きの容器にしまいます。足のネジがゆるんでいないと持ち上がりません。',
-      hint: '「手（指）」で文字盤をクリック',
+      hint: '「手」で文字盤をクリック',
     },
     {
       id: 'remove_hour_wheel', name: '筒車を外す', side: 'dial', needs: ['remove_dial'],
@@ -297,14 +297,14 @@ export default {
       target: 'barrel', tool: 'loupe',
       minigames: [{ type: 'inspect', title: 'ゼンマイの点検', question: 'このゼンマイはどうしますか？', source: 'mainspring', failure: 'wrong_diagnosis' }],
       explain: 'ゼンマイは長年使うと「へたり」が出て、力が弱くなります。香箱から出したとき、健全なゼンマイは大きくS字に開きますが、へたったゼンマイは渦巻きのまま縮こまっています。力が弱いと振り角が上がらず、時間も安定しません。',
-      hint: '「ルーペで観察」で香箱をクリック',
+      hint: '「ルーペ」で香箱をクリック',
     },
     {
       id: 'inspect_train', name: '歯車とほぞを点検する', side: 'back', needs: ['clean_parts'],
       target: 'escape_wheel', targetAlso: ['third_wheel', 'fourth_wheel', 'pallet_fork'], tool: 'loupe',
       minigames: [], message: 'ルーペで見ると、ほぞ（歯車の軸の先）に摩耗はなく、ガンギ車の歯先も、アンクルの爪石も欠けていない。洗浄で古い油もきれいに落ちている。',
       explain: '洗浄後は、ほぞの摩耗や曲がり、歯の欠け、爪石の欠けや緩みをルーペで確認します。汚れが落ちた状態でないと、細かい傷は見えません。',
-      hint: '「ルーペで観察」でガンギ車などをクリック',
+      hint: '「ルーペ」でガンギ車などをクリック',
     },
     // ======================= ゼンマイ交換・香箱 =======================
     {
@@ -377,7 +377,7 @@ export default {
       target: 'fourth_wheel', targetAlso: ['train_bridge', 'third_wheel', 'escape_wheel'], tool: 'loupe',
       minigames: [], message: 'ブロアーで軽く風を当てると、輪列がなめらかに回り、ゆっくり止まった。ほぞはすべて穴石に入っている。',
       explain: '受けを締めたら、ブロアーで風を当てたりして、輪列が軽く回るかを確かめます。引っかかりがあれば、ほぞが入っていないか、歯車が傷んでいます。',
-      hint: '「ルーペで観察」で4番車（中心）をクリック',
+      hint: '「ルーペ」で4番車（中心）をクリック',
     },
     {
       id: 'oil_train', name: '輪列のほぞに注油する', side: 'back', needs: ['check_train'],
@@ -508,7 +508,7 @@ export default {
       minigames: [{ type: 'steady', title: '文字盤をのせる', instruction: '文字盤の足を地板の穴に合わせて、まっすぐのせます。', corridor: 38, tremor: 3, failOn: 0.3, failure: 'drop', path: 'short' }],
       onDone: { move: 'dial', to: 'home' },
       explain: '文字盤の2本の足を地板の穴に差し込みます。ふちだけを持ち、表面には触れません。',
-      hint: '「手（指）」でトレイの文字盤をクリック',
+      hint: '「手」でトレイの文字盤をクリック',
     },
     {
       id: 'tighten_dial_screws', name: '文字盤足のネジを締める', side: 'back', needs: ['install_dial'],
@@ -537,7 +537,7 @@ export default {
       minigames: [{ type: 'steady', title: 'ケースに入れる', instruction: 'ムーブメントを中枠ごとケースへ戻します。', corridor: 40, tremor: 3, failOn: 0.3, failure: 'drop', path: 'short' }],
       onDone: { moveGroup: ['case', 'bezel', 'crystal', 'casing_ring', 'gasket_seat', 'gasket', 'gasket_new', 'gasket_old_back'], to: 'home' },
       explain: '風防の内側にホコリが入っていないか確認してから、ムーブメントをケースに戻します。',
-      hint: '「手（指）」で脇に置いたケースをクリック',
+      hint: '「手」で脇に置いたケースをクリック',
     },
     {
       id: 'insert_stem', name: '巻真（リューズ）を差し込む', side: 'back', needs: ['insert_movement'],
@@ -545,7 +545,7 @@ export default {
       minigames: [{ type: 'hold', title: '巻真を差し込む', instruction: '巻真をまっすぐ差し込み、カチッと入るところで止めます。', unit: 'mm', rate: 6, max: 16, windowMin: 8, windowMax: 11, failure: null, weight: 4 }],
       onDone: { move: 'crown', to: 'home' },
       explain: '巻真はオシドリを押さなくても、まっすぐ押し込めばカチッとはまります。入ったら、リューズを引いて1段目・2段目が正しく働くか確かめます。',
-      hint: '「手（指）」でトレイのリューズをクリック',
+      hint: '「手」でトレイのリューズをクリック',
     },
     {
       id: 'install_rotor', name: '回転錘を組み込む', side: 'back', needs: ['insert_movement'],
@@ -612,7 +612,7 @@ export default {
       target: 'crown', tool: 'hand',
       minigames: [{ type: 'hold', title: '時刻合わせ', instruction: 'リューズを2段目まで引いて回します。現在時刻（緑の範囲）で離してください。', unit: '分', rate: 60, max: 240, windowMin: 115, windowMax: 125, failure: null, weight: 3 }],
       explain: '最後にゼンマイを十分に巻き、時刻を合わせて完成です。お客さんに渡す前に1日ほど様子を見て、止まりや大きな狂いがないか確認するのが理想です。',
-      hint: '「手（指）」でリューズをクリック',
+      hint: '「手」でリューズをクリック',
     },
   ],
 };

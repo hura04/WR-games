@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ProcedureRunner } from '../src/procedure/ProcedureRunner.js';
 import { qualityToStars, computeReward } from '../src/procedure/scoring.js';
 import { getProcedure, PROCEDURES } from '../src/data/procedures/index.js';
-import { getTool } from '../src/data/tools.js';
+import { getTool, TOOLS } from '../src/data/tools.js';
 import { FAILURES } from '../src/data/failures.js';
 import { getConsumable } from '../src/data/consumables.js';
 import { getOil } from '../src/data/oils.js';
@@ -20,6 +20,23 @@ function finishAll(r) {
 }
 
 describe('工程データの整合性', () => {
+  it('すべての道具に絵がある', async () => {
+    const { ICON_NAMES } = await import('../src/ui/toolIcons.js');
+    for (const t of TOOLS) expect(ICON_NAMES, t.id).toContain(t.icon);
+  });
+
+  it('ヒントの道具名は、道具データの名前とそろっている（名前の統一）', () => {
+    const names = TOOLS.map((t) => t.name);
+    for (const p of Object.values(PROCEDURES)) {
+      for (const s of p.steps) {
+        if (!s.tool || !s.hint) continue;
+        expect(s.hint, s.id).toContain(`「${getTool(s.tool).name}」`);
+        const toolish = [...s.hint.matchAll(/「([^」]+)」/g)].map((m) => m[1]).filter((q) => /ドライバー|ピンセット|テスター|オイラー|ルーペ|グリス|オープナー/.test(q));
+        for (const q of toolish) expect(names, `${s.id}: ${q}`).toContain(q);
+      }
+    }
+  });
+
   for (const p of Object.values(PROCEDURES)) {
     it(`${p.id}: 参照しているid がすべて存在する`, () => {
       const ids = new Set(p.steps.map((s) => s.id));

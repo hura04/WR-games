@@ -29,6 +29,7 @@ import { tween, updateTweens } from '../core/tween.js';
 import { guideEnabled, saveState } from '../core/state.js';
 import { getEnvironment } from '../core/render.js';
 import { batteryTexture } from '../watch/textures.js';
+import { toolIconSvg } from '../ui/toolIcons.js';
 
 const $ = (id) => document.getElementById(id);
 const LOUPE_MAG = 4; // ルーペの倍率（第3段階で道具のグレードに連動させる）
@@ -385,7 +386,7 @@ export class BenchMode {
       for (const t of inGroup) {
         const b = document.createElement('button');
         b.className = (t.id === this.toolId ? 'selected ' : '') + (bar.includes(t.id) ? 'in-bar' : '');
-        b.textContent = t.name;
+        b.innerHTML = `<span class="icon">${toolIconSvg(t)}</span><span class="name">${t.name}</span>`;
         b.title = t.desc;
         b.onclick = () => { this.#putInHotbar(t.id); this.selectTool(t.id); this.toggleToolbox(false); };
         items.appendChild(b);
@@ -889,8 +890,8 @@ export class BenchMode {
       const t = id && getTool(id);
       const b = document.createElement('button');
       b.className = 'tool' + (!t ? ' empty' : '') + (t && t.id === this.toolId ? ' selected' : '');
-      const label = t ? (t.short || t.name).split('|').map((x) => `<span>${x}</span>`).join('') : '';
-      b.innerHTML = `<span class="key">${i === 9 ? 0 : i + 1}</span>${label}`;
+      // 絵が主役。名前は小さく下に（道具データの name と同じ名前）
+      b.innerHTML = `<span class="key">${i === 9 ? 0 : i + 1}</span>${t ? `<span class="icon">${toolIconSvg(t)}</span><span class="name">${t.name}</span>` : ''}`;
       if (t) {
         b.title = `${t.name}：${t.desc}`;
         b.dataset.tool = t.id;
