@@ -2,18 +2,21 @@
 import { createPanel, bindCancel, drawGauge, clamp01 } from './common.js';
 import { OILS, getOil } from '../../data/oils.js';
 
-export function run(container, cfg) {
+export function run(container, cfg, ctx = {}) {
   return new Promise((resolve) => {
     const p = createPanel(container, { ...cfg, instruction: cfg.instruction + ' まず油を選んでください。' });
     let done = false, chosen = null, value = 0, held = false, started = false;
     const failures = [];
     const finish = (r) => { if (done) return; done = true; p.close(); resolve(r); };
     bindCancel(p, finish);
-    const WMIN = 45, WMAX = 65, MAX = 100, RATE = 38;
+    const WMIN = 45, WMAX = 65, MAX = 100;
+    const RATE = 38 * (ctx.oilRate ?? 1); // 良いオイラーほど油がゆっくり出て、量を合わせやすい
     p.status.textContent = 'どの油を使いますか？';
     OILS.forEach((o) => {
       const b = document.createElement('button');
-      b.textContent = o.name;
+      const left = ctx.oilStock?.[o.id];
+      b.textContent = left === undefined ? o.name : `${o.name}（残り${left}回）`;
+      if (left === 0) { b.disabled = true; b.title = '在庫がありません。ショップ端末で仕入れましょう。'; }
       b.onclick = () => {
         chosen = o;
         if (o.id !== cfg.oil) failures.push('wrong_oil');

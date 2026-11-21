@@ -17,6 +17,8 @@ export function createNewState() {
     completed: {}, // procedureId -> 回数
     customerIndex: 0,
     history: [], // { day, customer, stars, net }
+    toolGrades: {}, // 道具一式のグレード（upgrades.js の id → 1〜3。書いていなければ1）
+    ledger: [], // 帳簿 { day, label, amount }（入金はプラス、支払いはマイナス）
     settings: { guide: 'auto', control: 'auto' }, // guide: 'auto'（3回まで）/'on'/'off'  control: 'auto'/'mouse'/'touch'
   };
 }
@@ -39,7 +41,15 @@ export function loadState() {
     const base = createNewState();
     // 最初から持っている道具が増えたときも、古いセーブに追加する
     const ownedTools = [...new Set([...(data.ownedTools || []), ...base.ownedTools])];
-    return { ...base, ...data, ownedTools, stock: { ...base.stock, ...data.stock }, settings: { ...base.settings, ...data.settings } };
+    return {
+      ...base,
+      ...data,
+      ownedTools,
+      stock: { ...base.stock, ...data.stock },
+      settings: { ...base.settings, ...data.settings },
+      toolGrades: { ...base.toolGrades, ...data.toolGrades },
+      ledger: Array.isArray(data.ledger) ? data.ledger : [],
+    };
   } catch {
     return null;
   }

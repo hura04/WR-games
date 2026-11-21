@@ -4,6 +4,21 @@
 // =============================================================
 import { COUNTER_CHECKS } from '../data/diagnosis.js';
 import { servicesFor } from '../data/services.js';
+import { ProcedureRunner } from '../procedure/ProcedureRunner.js';
+import { getProcedure } from '../data/procedures/index.js';
+import { getConsumable } from '../data/consumables.js';
+
+/** 選んだ作業で使う部品（油・グリス以外の、1個ずつ使う消耗品）と個数 */
+function partsFor(services, chosen) {
+  const main = services.find((s) => chosen.has(s.id) && s.procedure);
+  if (!main) return [];
+  const flags = {};
+  for (const s of services) if (s.setsFlag && chosen.has(s.id)) flags[s.setsFlag] = true;
+  const r = new ProcedureRunner(getProcedure(main.procedure), { services: chosen, flags });
+  const need = {};
+  for (const st of r.steps) for (const [id, n] of Object.entries(st.consumes || {})) need[id] = (need[id] || 0) + n;
+  return Object.entries(need).map(([id, n]) => ({ c: getConsumable(id), n })).filter((x) => x.c && !x.c.pack);
+}
 import { qualityToStars, computeReward } from '../procedure/scoring.js';
 import { FAILURES } from '../data/failures.js';
 import { MINIGAMES } from '../procedure/minigames/index.js';
@@ -104,6 +119,7 @@ function estimate(ui, job, state, onTalking) {
            </label>`,
        ).join('')}</div>
        <div class="total">合計 <b>0</b>円</div>
+       <div class="parts-check"></div>
        <p class="warn"></p>
        <div class="modal-actions">
          <button class="decline">お断りする</button>
@@ -124,6 +140,15 @@ function estimate(ui, job, state, onTalking) {
       const hasProcedure = services.some((s) => chosen.has(s.id) && s.procedure);
       acceptBtn.disabled = !hasProcedure;
       warn.textContent = hasProcedure ? '' : '作業の中心になるメニュー（電池交換・オーバーホールなど）を選んでください。';
+      // 使う部品の在庫と仕入れ値（足りなければ、引き受けたあとショップ端末で仕入れる）
+      const parts = partsFor(services, chosen);
+      const cost = parts.reduce((a, { c, n }) => a + c.price * n, 0);
+      box.querySelector('.parts-check').innerHTML = parts.length
+        ? `<h3>使う部品</h3><ul class="breakdown">${parts.map(({ c, n }) => {
+            const have = state.stock[c.id] || 0;
+            return `<li>${esc(c.name)} ×${n}<span class="${have >= n ? 'plus' : 'minus'}">在庫 ${have}個${have >= n ? '' : '（足りません：ショップ端末で仕入れを）'}</span></li>`;
+          }).join('')}<li><small>部品の仕入れ値 ${cost.toLocaleString()}円 → 見積もりとの差 ${(total - cost).toLocaleString()}円</small></li></ul>`
+        : '';
       return { chosen, total };
     };
     inputs.forEach((i) => (i.onchange = refresh));

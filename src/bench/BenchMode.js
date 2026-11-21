@@ -20,19 +20,20 @@ import { FAILURES } from '../data/failures.js';
 import { getProcedure } from '../data/procedures/index.js';
 import { getTool, TOOL_GROUPS, DEFAULT_HOTBAR, HOTBAR_SIZE } from '../data/tools.js';
 import { getConsumable } from '../data/consumables.js';
-import { getOil } from '../data/oils.js';
+import { getOil, OILS } from '../data/oils.js';
 import { partName, PARTS } from '../data/parts.js';
 import { getService } from '../data/services.js';
 import { readVoltage, judgeVoltage } from '../sim/quartzSim.js';
 import { measure, amplitudeOf, applyOiling, finalScore, rateOf, beatErrorOf } from '../sim/mechanicalSim.js';
 import { tween, updateTweens } from '../core/tween.js';
 import { guideEnabled, saveState } from '../core/state.js';
+import { toolStats } from '../core/economy.js';
 import { getEnvironment } from '../core/render.js';
 import { batteryTexture } from '../watch/textures.js';
 import { toolIconSvg } from '../ui/toolIcons.js';
 
 const $ = (id) => document.getElementById(id);
-const LOUPE_MAG = 4; // ルーペの倍率（第3段階で道具のグレードに連動させる）
+const LOUPE_MAG = 4; // 入門用ルーペの倍率（グレードアップで6倍・10倍になる。toolStats を参照）
 const LOUPE_R = 120; // ルーペの半径（画面のピクセル）
 const DEFAULT_DIST = 290;
 
@@ -408,6 +409,12 @@ export class BenchMode {
   toggleLoupe() {
     this.loupeOn = !this.loupeOn;
     $('bc-loupe')?.classList.toggle('on', this.loupeOn);
+    if (this.loupeOn) this.game.ui.toast(`ルーペ ${toolStats(this.game.state, 'loupe').loupeMag}倍`, '', 1500);
+  }
+
+  /** ショップで道具を買ったあと、ホットバーの表示（グレードの印）を更新 */
+  refreshTools() {
+    if (this.active) this.#renderTools();
   }
 
   flipWatch() {
@@ -520,7 +527,7 @@ export class BenchMode {
     const state = this.game.state;
     for (const [cid, n] of Object.entries(step.consumes || {})) {
       if ((state.stock[cid] || 0) < n) {
-        ui.toast(`${getConsumable(cid).name} の在庫がありません。`, 'bad');
+        ui.toast(`${getConsumable(cid).name} の在庫がありません。席を立って（X）、ショップ端末で仕入れましょう。`, 'bad', 6500);
         return;
       }
     }
@@ -528,11 +535,14 @@ export class BenchMode {
     // 画面が広いときだけ解説を自動で開く（狭い画面では時計が隠れるので［解説］ボタンで開く）
     if (this.guide && innerWidth >= 1000) this.#showExplain(step);
     const scores = [];
-    const tremor = getTool(this.toolId)?.tremor ?? 1;
+    // 道具のグレードで手ブレ・油の出る速さが変わる（ショップ端末でグレードアップ）
+    const stats = toolStats(state, this.toolId);
+    const tremor = (getTool(this.toolId)?.tremor ?? 1) * stats.tremor;
+    const stock = Object.fromEntries(OILS.map((o) => [o.id, state.stock[o.consumable] || 0]));
     try {
       for (const mg of step.minigames) {
         const data = this.#minigameData(step, mg);
-        const r = await MINIGAMES[mg.type].run($('minigame'), mg, { tremor, data });
+        const r = await MINIGAMES[mg.type].run($('minigame'), mg, { tremor, data, oilRate: stats.oilRate, oilStock: stock });
         if (r.cancelled) {
           ui.toast('作業を中断しました。');
           return;
@@ -893,14 +903,16 @@ export class BenchMode {
       // 絵が主役。名前は小さく下に（道具データの name と同じ名前）
       b.innerHTML = `<span class="key">${i === 9 ? 0 : i + 1}</span>${t ? `<span class="icon">${toolIconSvg(t)}</span><span class="name">${t.name}</span>` : ''}`;
       if (t) {
-        b.title = `${t.name}：${t.desc}`;
+        const st = toolStats(this.game.state, t.id);
+        if (st.grade > 1) b.insertAdjacentHTML('beforeend', `<span class="grade-dot g${st.grade}" title="${st.gradeName}">${st.grade === 3 ? '★' : '◆'}</span>`);
+        b.title = `${t.name}（${st.gradeName}）：${t.desc}`;
         b.dataset.tool = t.id;
         b.onclick = () => this.selectTool(t.id);
       } else b.onclick = () => this.toggleToolbox(true);
       bar.appendChild(b);
     });
     const t = getTool(this.toolId);
-    $('tool-desc').textContent = t ? `${t.name}：${t.desc}` : '';
+    $('tool-desc').textContent = t ? `${t.name}（${toolStats(this.game.state, t.id).gradeName}）：${t.desc}` : '';
     if ($('toolbox').classList.contains('show')) this.#renderToolbox();
   }
 
@@ -966,7 +978,7 @@ export class BenchMode {
     this.loupeCam.position.copy(this.camera.position);
     this.loupeCam.up.copy(this.camera.up);
     this.loupeCam.lookAt(this.camera.position.clone().add(dir));
-    this.loupeCam.fov = this.camera.fov / LOUPE_MAG;
+    this.loupeCam.fov = this.camera.fov / toolStats(this.game.state, 'loupe').loupeMag;
     this.loupeCam.updateProjectionMatrix();
     r.setRenderTarget(this.loupeRT);
     r.render(this.scene, this.loupeCam);

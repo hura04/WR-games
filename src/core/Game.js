@@ -20,6 +20,10 @@ import { getConsumable } from '../data/consumables.js';
 import { createQuartzState } from '../sim/quartzSim.js';
 import { createMechanicalState } from '../sim/mechanicalSim.js';
 import { MINIGAMES } from '../procedure/minigames/index.js';
+import { openShop } from '../ui/Shop.js';
+import { addLedger, closeDay, toolStats } from './economy.js';
+import { getProcedure } from '../data/procedures/index.js';
+import { getOil } from '../data/oils.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -207,6 +211,7 @@ export class Game {
       return this.#withDialog(async () => {
         const res = await runHandover(this.ui, job, this.state, this.#talking);
         this.state.money += res.reward.net;
+        addLedger(this.state, `修理代：${job.customer.name}`, res.reward.net);
         this.state.completed[job.procedureId] = (this.state.completed[job.procedureId] || 0) + 1;
         this.state.reputation += Math.max(0, res.stars - 2);
         this.state.history.push({ day: this.state.day, customer: job.customer.name, stars: res.stars, net: res.reward.net });
@@ -227,7 +232,56 @@ export class Game {
     }
     if (id === 'cleaner') return this.#useCleaner();
     if (id === 'shelf') return this.#withDialog(() => this.#showShelf());
-    if (id === 'terminal') return this.ui.toast('ショップ端末。道具や消耗品の購入は第3段階で使えるようになります。');
+    if (id === 'terminal') return this.#withDialog(() => this.#openShop());
+  }
+
+  /** いま預かっている時計の作業で使う消耗品（ショップで「要」の印をつける） */
+  #neededConsumables() {
+    const needs = new Set();
+    const job = this.job;
+    if (!job?.procedureId) return needs;
+    const steps = job.runner ? job.runner.steps : getProcedure(job.procedureId).steps;
+    for (const s of steps) {
+      for (const id of Object.keys(s.consumes || {})) needs.add(id);
+      for (const mg of s.minigames || []) if (mg.oil) needs.add(getOil(mg.oil)?.consumable);
+    }
+    needs.delete(undefined);
+    return needs;
+  }
+
+  /** ショップ端末 */
+  async #openShop() {
+    const job = this.job;
+    const res = await openShop(this.ui, this.state, {
+      needs: this.#neededConsumables(),
+      jobInProgress: !!(job && job.phase === 'accepted'),
+      onChange: () => {
+        saveState(this.state);
+        this.ui.updateHud(this.state, this.job);
+        this.bench.refreshTools?.();
+      },
+    });
+    if (res.closeDay) await this.#closeDay();
+  }
+
+  /** 営業終了：家賃を払って次の日へ。1日のまとめを見せる */
+  #closeDay() {
+    const sum = closeDay(this.state);
+    saveState(this.state);
+    this.ui.updateHud(this.state, this.job);
+    const yen = (n) => `${n.toLocaleString()}円`;
+    return new Promise((resolve) => {
+      const box = this.ui.openModal(
+        `<h2>${this.state.day - 1}日目の営業終了</h2>
+         <ul class="breakdown">
+           ${sum.rows.map((r) => `<li>${r.label}<span class="${r.amount >= 0 ? 'plus' : 'minus'}">${r.amount >= 0 ? '+' : '−'}${yen(Math.abs(r.amount))}</span></li>`).join('')}
+         </ul>
+         <ul class="breakdown total"><li><b>この日の差し引き</b><span><b>${sum.net >= 0 ? '+' : '−'}${yen(Math.abs(sum.net))}</b></span></li><li>所持金<span>${yen(this.state.money)}</span></li></ul>
+         <p class="sub">${this.state.day}日目の朝です。セーブしました。</p>
+         <div class="modal-actions"><button class="primary">工房を開ける</button></div>`,
+      );
+      box.querySelector('button').onclick = () => { this.ui.closeModal(); resolve(); };
+    });
   }
 
   /** 洗浄機：かごに入れた部品を洗う */
@@ -264,7 +318,8 @@ export class Game {
       const box = this.ui.openModal(
         `<h2>道具棚</h2>
          <h3>持っている道具</h3>
-         <ul class="breakdown">${tools.map((t) => `<li><b>${t.name}</b><small>${t.desc}</small></li>`).join('')}</ul>
+         <ul class="breakdown">${tools.map((t) => `<li><b>${t.name}</b>（${toolStats(this.state, t.id).gradeName}）<small>${t.desc}</small></li>`).join('')}</ul>
+         <p class="sub">道具のグレードアップと消耗品の仕入れは、右奥のショップ端末（パソコン）でできます。</p>
          <h3>消耗品の在庫</h3>
          <ul class="breakdown">${stock.map(({ c, n }) => `<li>${c.name}<span>${n}${c.unit || '個'}</span></li>`).join('')}</ul>
          <div class="modal-actions"><button class="primary">閉じる</button></div>`,
